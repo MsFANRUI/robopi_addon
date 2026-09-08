@@ -5,7 +5,7 @@ Requires=systemd-modules-load.service
 
 [Service]
 Type=oneshot
-ExecStart=/opt/roboparty/bin/robopi-ws2812 solid 0 0 255
+ExecStart=/opt/roboparty/bin/robopi-ws2812 solid 30 30 30
 ExecStop=/opt/roboparty/bin/robopi-ws2812 off
 RemainAfterExit=yes
 
