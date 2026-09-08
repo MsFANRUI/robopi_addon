@@ -14,6 +14,8 @@ import time
 # Packed BatteryStatus ABI deployed on RoboPi (little endian, 126 bytes).
 # The older 121-byte ABI has the same package version and is NOT compatible.
 FRAME = struct.Struct('<7dIH2d33sHHHIIB')
+# 连续收到该数量的 io_state=0x00100000 有效帧才关断小电池（B0 拉低）。
+OFF_FRAMES_REQUIRED = 3
 FIELDS = ('double voltage; double current; double temperature; double percentage; '
           'double charge; double capacity; double design_capacity; '
           'uint32_t protect_status; uint16_t work_state; double max_cell_voltage; '
@@ -67,14 +69,20 @@ class Outputs:
         self.fds = []
 
 
-def apply_frame(frame, outputs):
+def apply_frame(frame, outputs, off_frames=0):
     values = FRAME.unpack(frame)
     if values[-1] not in (0, 1) or not all(math.isfinite(x) for x in values[:7]):
         raise ValueError('Invalid BatteryStatus frame; GPIO unchanged')
     io_state, power_on = values[-2:]
-    b0 = 1 if io_state in (0x0010000A, 0x0010000F) else (0 if io_state == 0x00100000 else None)
-    outputs.set_levels(b0, 0, f'valid battery data io_state=0x{io_state:08X}')
-    return io_state, power_on
+    if io_state == 0x00100000:
+        off_frames += 1
+        # 未凑满连续帧数前保持 B0，不关断。
+        b0 = 0 if off_frames >= OFF_FRAMES_REQUIRED else None
+    else:
+        off_frames = 0
+        b0 = 1 if io_state in (0x0010000A, 0x0010000F) else None
+    outputs.set_levels(b0, 0, f'valid battery data io_state=0x{io_state:08X} off_frames={off_frames}')
+    return io_state, power_on, off_frames
 
 
 def monitor(path, outputs, stopping, retry=1.0, poll=0.5):
@@ -93,6 +101,7 @@ def monitor(path, outputs, stopping, retry=1.0, poll=0.5):
                 time.sleep(retry)
                 continue
             print(f'Connected: {path}; waiting for complete frames', flush=True)
+            off_frames = 0  # 断开已把 B0 拉高，连续关断帧计数每次重连清零。
             pending = b''
             while not stopping():
                 try:
@@ -108,12 +117,15 @@ def monitor(path, outputs, stopping, retry=1.0, poll=0.5):
                 pending += part
                 if len(pending) == FRAME.size:
                     try:
-                        status = apply_frame(pending, outputs)
+                        io_state, power_on, off_frames = apply_frame(pending, outputs, off_frames)
                     except ValueError as exc:
-                        print(str(exc), flush=True)
+                        # 坏帧一律清零计数（宁可晚关断也不误关），GPIO 不动。
+                        off_frames = 0
+                        print(f'{exc}; off_frames reset', flush=True)
                     else:
+                        status = (io_state, power_on)
                         if status != last_status:
-                            print(f'io_state=0x{status[0]:08X} power_on={status[1]}', flush=True)
+                            print(f'io_state=0x{io_state:08X} power_on={power_on}', flush=True)
                             last_status = status
                     pending = b''
         if not stopping():

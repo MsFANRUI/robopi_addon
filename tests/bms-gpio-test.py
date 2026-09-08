@@ -45,13 +45,17 @@ class TestBms(unittest.TestCase):
         out.set(1, 'disconnect')
         mod.apply_frame(packet(0, 0), out)
         self.assertEqual(out.levels, [1, 0])
-        mod.apply_frame(packet(0x100000, 0), out)
+        s = mod.apply_frame(packet(0x100000, 0), out, 0)[2]
+        s = mod.apply_frame(packet(0x100000, 0), out, s)[2]
+        mod.apply_frame(packet(0x100000, 0), out, s)  # 连续第 3 帧才关断
         self.assertEqual(out.level, 0)
         mod.apply_frame(packet(0x10000f), out)
         self.assertEqual(out.levels, [1, 0])
         mod.apply_frame(packet(0x100001), out)
         self.assertEqual(out.levels, [1, 0])
-        mod.apply_frame(packet(0x100000, 0), out)
+        s = mod.apply_frame(packet(0x100000, 0), out, 0)[2]
+        s = mod.apply_frame(packet(0x100000, 0), out, s)[2]
+        mod.apply_frame(packet(0x100000, 0), out, s)  # 连续第 3 帧才关断
         mod.apply_frame(packet(0x100001), out)
         mod.apply_frame(packet(0, 0), out)
         self.assertEqual(out.levels, [0, 0])
@@ -102,7 +106,7 @@ class TestBms(unittest.TestCase):
                 conn.sendall(packet(0, 0))
                 time.sleep(.15)
                 self.assertEqual(out.levels, [1, 0])
-                conn.sendall(packet(0x100000, 0))
+                conn.sendall(packet(0x100000, 0) * 3)  # 连续 3 帧才关断
                 time.sleep(.15)
                 self.assertEqual(out.level, 0)
             finally:
