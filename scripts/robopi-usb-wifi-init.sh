@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install-time and boot-time preparation; never changes NetworkManager profiles.
 set -eu
-target=6.1.99-rt36-rockchip-rk3588
+target=@TARGET_KERNEL_RELEASE@
 if [ "$(uname -r)" != "$target" ]; then
     echo "robopi-usb-wifi: modules require $target; skipping current kernel $(uname -r)" >&2
     exit 0

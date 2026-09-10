@@ -1,3 +1,15 @@
+robopi-addon (1.6.28-1) stable; urgency=medium
+
+  * Rebuild AIC8800 USB Wi-Fi modules for 6.18.50-current-rockchip64.
+  * Add patches/aic8800-linux-6.18-compat.patch (wakeup_source, timer,
+    cfg80211 link_id, radio_idx).
+  * Rebuild robopi-ws2812 for 6.18.50 (noop_llseek).
+  * Build per-kernel debs via CI matrix and inject TARGET_KERNEL_RELEASE
+    into usb-wifi init script and systemd unit.
+  * Refresh aic8800.sha256 and USB Wi-Fi docs; keep 6.1.99 prebuilts.
+
+ -- fanxiaobinggit <16692712013@163.com>  Wed, 10 Sep 2026 22:00:00 +0800
+
 robopi-addon (1.6.27-1) stable; urgency=medium
 
   * Remove obsolete package replacement and conflict declarations.

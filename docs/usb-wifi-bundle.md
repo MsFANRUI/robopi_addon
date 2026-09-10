@@ -1,12 +1,18 @@
-# AIC USB 无线网卡内置驱动（1.6.18）
+# AIC USB 无线网卡内置驱动
 
-支持已验证的 UGREEN AX300 / AIC8800DC，ARM64 内核版本必须为
-`6.1.99-rt36-rockchip-rk3588`。相同版本字符串仍要求兼容的内核配置和符号 ABI；
-换内核时必须重新编译、测试并更新预编译文件及 SHA256，不能强制加载。
+支持已验证的 UGREEN AX300 / AIC8800DC。当前默认目标内核为
+`6.18.50-current-rockchip64`（PREEMPT_RT）。相同版本字符串仍要求兼容的内核
+配置和符号 ABI；换内核时必须重新编译、测试并更新预编译文件及 SHA256，不能
+强制加载。
 
-安装 `sudo apt install ./robopi-addon_1.6.18-1_arm64.deb` 后，无需另行编译驱动：
+预编译模块目录：
 
-- 包含 `aic_load_fw.ko`、`aic8800_fdrv.ko`。
+- `prebuilt/6.18.50-current-rockchip64/`（默认，含 6.18 API 补丁后的源码编译产物）
+- `prebuilt/6.1.99-rt36-rockchip-rk3588/`（旧内核保留）
+
+安装 `sudo apt install ./robopi-addon_<version>_arm64.deb` 后，无需另行编译驱动：
+
+- 包含 `aic_load_fw.ko`、`aic8800_fdrv.ko`（按 `TARGET_KERNEL_RELEASE` 选择目录）。
 - 从原厂归档安装 `/lib/firmware/aic8800DC` 固件。
 - 安装 `/etc/udev/rules.d/aic.rules`，针对 AIC 虚拟存储盘自动执行 eject。
 - 刷新目标内核模块索引，启用 `robopi-usb-wifi.service`。
@@ -43,11 +49,15 @@ iw dev
 原始归档为用户提供的 `UGREEN_AIC-AX300_LinuxDriver_V1.6.zip`，保存在
 `prebuilt/`，并随二进制包放入 `/usr/share/doc/robopi-addon/vendor/`。
 归档包含本次编译使用的驱动源码及固件，校验值在 `prebuilt/aic8800.sha256`。
-模块于 2026-08-27 在 RoboPi2 目标内核上原生编译，未修改厂商源码：
+模块于 2026-08-27 在 RoboPi2 `6.1.99-rt36` 上原生编译；于 2026-09-10 在
+`6.18.50-current-rockchip64` 上应用 `patches/aic8800-linux-6.18-compat.patch`
+后重新编译：
 
 ```bash
 unzip UGREEN_AIC-AX300_LinuxDriver_V1.6.zip
-cd aic8800_linux_drvier/drivers/aic8800
+cd aic8800_linux_drvier
+patch -p1 < /path/to/patches/aic8800-linux-6.18-compat.patch
+cd drivers/aic8800
 make
 ```
 
