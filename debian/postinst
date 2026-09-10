@@ -39,7 +39,7 @@ if [ "$1" = configure ]; then
     systemctl enable robopi-wifi-autoselect.service 2>/dev/null || true
     systemctl enable wifi-reset.service 2>/dev/null || true
     systemctl enable hpm-reset.service 2>/dev/null || true
-    systemctl enable robopi-ethernet-mac.service 2>/dev/null || true
+    systemctl disable robopi-ethernet-mac.service 2>/dev/null || true
     systemctl disable robopi-hw-test.service robopi-sig-key.service 2>/dev/null || true
     systemctl enable robopi-bms-gpio.service 2>/dev/null || true
     systemctl enable robopi-fan.service 2>/dev/null || true
