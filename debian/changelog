@@ -1,3 +1,9 @@
+robopi-addon (1.6.27-1) stable; urgency=medium
+
+  * Remove obsolete package replacement and conflict declarations.
+
+ -- fanrui <3157422574@qq.com>  Thu, 10 Sep 2026 17:52:25 +0800
+
 robopi-addon (1.6.26-1) stable; urgency=medium
 
   * fix: Disable robopi-ethernet-mac.service
