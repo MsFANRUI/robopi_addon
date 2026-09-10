@@ -119,7 +119,7 @@ static ssize_t ws2812_write(struct file *file, const char __user *buffer,
 static const struct file_operations ws2812_fops = {
 	.owner = THIS_MODULE,
 	.write = ws2812_write,
-	.llseek = no_llseek,
+	.llseek = noop_llseek,
 };
 
 static struct miscdevice ws2812_misc = {
