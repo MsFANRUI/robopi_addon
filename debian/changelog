@@ -1,3 +1,10 @@
+robopi-addon (1.6.26-1) stable; urgency=medium
+
+  * fix: Disable robopi-ethernet-mac.service
+         Add robopi-light-power.sh to switch the light power GPIO1_C4 (no Makefile install entry)
+
+ -- fanrui <3157422574@qq.com>  Tue, 10 Sep 2026 11:25:06 +0800
+
 robopi-addon (1.6.25-1) stable; urgency=medium
 
   * fix: set light board color to white
