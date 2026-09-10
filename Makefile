@@ -49,8 +49,13 @@ install: all check-prebuilt-module check-prebuilt-wifi
 	install -d $(DESTDIR)/lib/firmware/aic8800DC
 	install -m 0644 build/aic-vendor/aic8800_linux_drvier/fw/aic8800DC/* $(DESTDIR)/lib/firmware/aic8800DC/
 	install -D -m 0644 etc/udev/rules.d/aic.rules $(DESTDIR)/etc/udev/rules.d/aic.rules
-	install -D -m 0755 scripts/robopi-usb-wifi-init.sh $(DESTDIR)/opt/roboparty/bin/robopi-usb-wifi-init
-	install -D -m 0644 etc/systemd/system/robopi-usb-wifi.service $(DESTDIR)/lib/systemd/system/robopi-usb-wifi.service
+	mkdir -p $(DESTDIR)/opt/roboparty/bin $(DESTDIR)/lib/systemd/system
+	sed 's/@TARGET_KERNEL_RELEASE@/$(TARGET_KERNEL_RELEASE)/g' \
+		scripts/robopi-usb-wifi-init.sh > $(DESTDIR)/opt/roboparty/bin/robopi-usb-wifi-init
+	chmod 0755 $(DESTDIR)/opt/roboparty/bin/robopi-usb-wifi-init
+	sed 's/@TARGET_KERNEL_RELEASE@/$(TARGET_KERNEL_RELEASE)/g' \
+		etc/systemd/system/robopi-usb-wifi.service > $(DESTDIR)/lib/systemd/system/robopi-usb-wifi.service
+	chmod 0644 $(DESTDIR)/lib/systemd/system/robopi-usb-wifi.service
 	install -D -m 0644 docs/usb-wifi-bundle.md $(DESTDIR)/usr/share/doc/robopi-addon/usb-wifi-bundle.md
 	install -D -m 0644 prebuilt/UGREEN_AIC-AX300_LinuxDriver_V1.6.zip $(DESTDIR)/usr/share/doc/robopi-addon/vendor/UGREEN_AIC-AX300_LinuxDriver_V1.6.zip
 	install -D -m 0644 docs/wifi-selection.md $(DESTDIR)/usr/share/doc/robopi-addon/wifi-selection.md

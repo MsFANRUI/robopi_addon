@@ -5,7 +5,13 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, rk3588]
+    runs-on: [self-hosted, Linux, ARM64, "24.04"]
+    strategy:
+      fail-fast: false
+      matrix:
+        kernel:
+          - 6.18.50-current-rockchip64
+          - 6.1.99-rt36-rockchip-rk3588
 
     steps:
     - name: Checkout code
@@ -30,18 +36,54 @@ jobs:
     - name: Install build dependencies
       run: sudo apt-get update && sudo apt-get install -y build-essential debhelper unzip kmod binutils
 
-    - name: Build Debian package
+    - name: Build Debian package for ${{ matrix.kernel }}
+      env:
+        TARGET_KERNEL_RELEASE: ${{ matrix.kernel }}
       run: |
+        export TARGET_KERNEL_RELEASE
         dpkg-buildpackage -us -uc -b
         mv ../*.deb .
 
         VERSION=$(dpkg-parsechangelog -S Version | cut -d'-' -f1 || echo "unknown")
+        KERNEL_TAG=$(echo "$TARGET_KERNEL_RELEASE" | tr '+' '_')
         echo "PKG_VERSION=$VERSION" >> $GITHUB_ENV
+        echo "KERNEL_TAG=$KERNEL_TAG" >> $GITHUB_ENV
+        echo "TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE" >> $GITHUB_ENV
+
+        # Rename so the two matrix jobs do not collide
+        for f in robopi-addon_*.deb; do
+          [ -f "$f" ] || continue
+          base="${f%.deb}"
+          mv "$f" "${base}_${KERNEL_TAG}.deb"
+        done
+        ls -l *.deb
+
+    - name: Verify package kernel binding
+      run: |
+        DEB=$(ls robopi-addon_*_${KERNEL_TAG}.deb | head -1)
+        dpkg-deb -c "$DEB" | grep -F "/lib/modules/${TARGET_KERNEL_RELEASE}/" || {
+          echo "::error::Package missing modules for ${TARGET_KERNEL_RELEASE}"
+          exit 1
+        }
+        # init script must embed the target kernel
+        tmp=$(mktemp -d)
+        dpkg-deb -x "$DEB" "$tmp"
+        grep -F "target=${TARGET_KERNEL_RELEASE}" "$tmp/opt/roboparty/bin/robopi-usb-wifi-init" || {
+          echo "::error::init script does not target ${TARGET_KERNEL_RELEASE}"
+          exit 1
+        }
+        grep -F "ConditionPathExists=/lib/modules/${TARGET_KERNEL_RELEASE}/" \
+          "$tmp/lib/systemd/system/robopi-usb-wifi.service" || {
+          echo "::error::service ConditionPathExists mismatch"
+          exit 1
+        }
+        rm -rf "$tmp"
+        echo "OK: $DEB bound to ${TARGET_KERNEL_RELEASE}"
 
     - name: Upload Debian package
       uses: actions/upload-artifact@v4
       with:
-        name: robopi-addon-v${{ env.PKG_VERSION }}-arm64
+        name: robopi-addon-v${{ env.PKG_VERSION }}-${{ env.KERNEL_TAG }}-arm64
         path: "*.deb"
 
     - name: Upload to GitHub Release
