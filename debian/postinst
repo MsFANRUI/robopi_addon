@@ -2,7 +2,7 @@
 set -e
 
 MODULE_NAME=robopi-ws2812
-TARGET_KERNEL_RELEASE=6.1.99-rt36-rockchip-rk3588
+TARGET_KERNEL_RELEASE=@TARGET_KERNEL_RELEASE@
 MODULE_PATH="/lib/modules/$TARGET_KERNEL_RELEASE/extra/$MODULE_NAME.ko"
 
 is_chroot()
@@ -59,7 +59,8 @@ if [ "$1" = configure ]; then
         systemctl restart --no-block robopi-wifi-autoselect.service || true
         running_kernel=$(uname -r)
         if [ "$running_kernel" = "$TARGET_KERNEL_RELEASE" ]; then
-            modprobe "$MODULE_NAME"
+            # Orange Pi / boards without PWM6_M1 return ENODEV; do not fail install.
+            modprobe "$MODULE_NAME" || echo "robopi-addon: $MODULE_NAME not available on this board (PWM6_M1 missing?)" >&2
         else
             echo "robopi-addon: module targets $TARGET_KERNEL_RELEASE; current kernel is $running_kernel" >&2
             echo "robopi-addon: module will load after booting the matching kernel" >&2
