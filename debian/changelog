@@ -1,3 +1,13 @@
+robopi-addon (1.7.2-1) stable; urgency=medium
+
+  * Detect aic8800 modules for the running kernel instead of hard-coding
+    6.18.50 in robopi-usb-wifi-init and the systemd unit ConditionPathExists.
+  * Autoload aic_load_fw and aic8800_fdrv via modules-load.d.
+  * Ship rebuilt robopi-ws2812, aic_load_fw and aic8800_fdrv prebuilts for
+    6.18.51-current-rockchip64.
+
+ -- changchuanyong <1984715306@qq.com>  Fri, 11 Sep 2026 23:50:00 +0800
+
 robopi-addon (1.7.1-1) stable; urgency=medium
 
   * Move the Wired connection 1 static address to 192.168.137.250/24, the high
