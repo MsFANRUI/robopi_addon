@@ -14,8 +14,9 @@ device_type=$(nmcli -g GENERAL.TYPE device show "$interface")
 
 nmcli connection modify uuid "$uuid" \
     connection.autoconnect yes \
-    ipv4.method manual ipv4.addresses 192.168.13.1/24 \
-    ipv4.gateway "" ipv4.never-default yes ipv4.ignore-auto-dns yes \
+    ipv4.method manual ipv4.addresses 192.168.137.250/24 \
+    ipv4.gateway 192.168.137.1 ipv4.never-default no \
+    ipv4.dns "192.168.137.1" ipv4.ignore-auto-dns yes \
     ipv6.gateway "" ipv6.never-default yes ipv6.ignore-auto-dns yes
 
 carrier=$(cat "/sys/class/net/$interface/carrier" 2>/dev/null || true)

@@ -1,3 +1,15 @@
+robopi-addon (1.7.1-1) stable; urgency=medium
+
+  * Move the Wired connection 1 static address to 192.168.137.250/24, the high
+    end of the Windows sharing range, and export a default route through the
+    sharing host on 192.168.137.1.
+  * Point DNS at that same host so name resolution uses the connection the
+    cable provides. The previous never-default, empty-gateway and no-DNS
+    settings left the board without internet whenever the PC shared its
+    connection over the cable.
+
+ -- changchuanyong <1984715306@qq.com>  Fri, 11 Sep 2026 20:56:00 +0800
+
 robopi-addon (1.7.0-1) stable; urgency=medium
 
   * Drop all modules, packaging paths and CI targets for the legacy
