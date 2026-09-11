@@ -4,7 +4,7 @@
 # Build settings. A package must contain modules built for exactly one kernel.
 CC ?= gcc
 CFLAGS ?= -O3 -Wall -Wextra
-TARGET_KERNEL_RELEASE := 6.18.50-current-rockchip64
+TARGET_KERNEL_RELEASE := 6.18.51-current-rockchip64
 KDIR ?= /lib/modules/$(TARGET_KERNEL_RELEASE)/build
 PREBUILT_MODULE ?= prebuilt/$(TARGET_KERNEL_RELEASE)/robopi-ws2812.ko
 

@@ -1,3 +1,12 @@
+robopi-addon (1.7.3-1) stable; urgency=medium
+
+  * Retarget the package to 6.18.51-current-rockchip64.
+  * Update Makefile, debian maintainer scripts, prebuilt checksums and docs
+    for the new kernel; ship rebuilt robopi-ws2812, aic_load_fw and
+    aic8800_fdrv prebuilts.
+
+ -- changchuanyong <1984715306@qq.com>  Fri, 11 Sep 2026 23:58:00 +0800
+
 robopi-addon (1.7.2-1) stable; urgency=medium
 
   * Detect aic8800 modules for the running kernel instead of hard-coding
