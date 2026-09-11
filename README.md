@@ -2,182 +2,327 @@
 
 [中文说明](README_CN.md)
 
-Add-on toolkit for the RoboPi RK3588S platform: WS2812 strip control and
-SIG/key GPIO helpers. It does not depend on `roboparty-base`.
+`robopi-addon` is the board support package for RoboPi RK3588S (ARM64). It can
+be installed independently and does not require `roboparty-base`. It installs
+Wi-Fi, BMS GPIO, fan, WS2812, EtherCAN maintenance, and field diagnostic tools
+under `/opt/roboparty`. Frequently used commands are also exposed through
+`/usr/bin`.
 
-- `robopi-ws2812`: controls 12 daisy-chained WS2812B-MINI-V3/W LEDs through PWM6_M1
-- `robopi-sig-key`: SIG rising-edge LED output and key handling
-- `robopi-ethernet-mac`: derives and applies a stable Ethernet MAC from the RK3588 Chip ID
+The package configures and enables several systemd services. Keep a serial
+console or an alternative wired connection available during the first
+installation or upgrade, because Wi-Fi selection and device restarts may
+interrupt the current SSH session.
 
-This package does not install or modify the device tree. PWM6_M1 must already
-be enabled by the system.
+## Quick reference
 
-## What's included
+| Task | Command or documentation |
+|---|---|
+| Inspect or select Wi-Fi | `robopi-wifi-select status` / [Wi-Fi selection](docs/wifi-selection.md) |
+| Control the WS2812 strip | `sudo robopi-ws2812 --help` |
+| Control the fan | `sudo robopi-fan on\|off\|status` |
+| Check the Ethernet MAC | `robopi-ethernet-mac check` |
+| Inspect GPIO0_C2 drive strength | `sudo robopi-gpio0-c2-drive status` |
+| Review BMS GPIO behavior | [BMS GPIO](docs/bms-gpio.md) |
+| Capture a USB-CAN fault snapshot | `sudo usbcan-debug-snapshot` / [capture guide](docs/usbcan-dump.md) |
+| Analyze a USB-CAN capture | `analyze-ethercan-pcap <pcap-file-or-directory>` |
+| List failed services | `systemctl --failed` |
 
-- Persistent USB/onboard Wi-Fi selection: `sudo robopi-wifi-select usb`;
-  see [usage and recovery](docs/wifi-selection.md).
-- Low-impact USB-CAN ring capture, debug snapshots, and offline EtherCANFD
-  analysis; see [USB-CAN capture](docs/usbcan-dump.md).
+## Default service policy
 
-- `robopi-ws2812` command-line controller
-- `robopi-ws2812` kernel transmitter and `/dev/robopi-ws2812`
-- Solid color, flash, chase, rainbow, and demo effects
-- `robopi-sig-key` SIG/key GPIO helper
-- Native ARM64 build support
-- Prebuilt kernel module for Linux 6.1.99-rt36-rockchip-rk3588
-- Debian packaging for installation and removal
+The package maintainer scripts apply the following default policy:
 
-## Commands
+| Service | Default | Purpose |
+|---|---|---|
+| `robopi-usb-wifi.service` | Enabled | Initialize AIC8800 USB Wi-Fi |
+| `robopi-wifi-autoselect.service` | Enabled | Select USB or onboard Wi-Fi at boot |
+| `wifi-reset.service` | Enabled | Monitor and reconnect the selected Wi-Fi interface without switching adapters |
+| `robopi-bms-gpio.service` | Enabled | Drive the dual-battery GPIO indicators from BMS state |
+| `robopi-fan.service` | Enabled | Turn on FAN_SW at boot |
+| `robopi-ws2812-white.service` | Enabled | Run `solid 30 30 30` at boot and turn the strip off when stopped |
+| `hpm-reset.service` | Enabled | Hardware-reset the onboard HPM after repeated EtherCAN USB loss |
+| `robopi-ethernet-mac.service` | Disabled | Enable manually only after checking the interface name and network impact |
+| `robopi-hw-test.service` | Disabled | Manufacturing/diagnostic tool; conflicts with the BMS GPIO service |
+| `robopi-sig-key.service` | Disabled | SIG/key diagnostic tool; conflicts with the BMS GPIO service |
+| `usbcan-capture.service` | Disabled and not started | USB ring capture used only while reproducing a fault |
 
-The program sends GRB frames through `/dev/robopi-ws2812`; the kernel
-module generates the validated 800 kHz PWM6_M1 waveform.
+`hpm-autoflash.service` is a static maintenance unit with no `[Install]`
+section. The package currently does not install the HPM udev trigger it expects,
+so it must not be treated as an active automatic update mechanism.
+
+## Wi-Fi
+
+The package contains prebuilt modules, firmware, and initialization tools for
+the UGREEN AX300 (AIC8800DC). When exactly one supported USB adapter is present,
+it is assigned the stable name `wlan1`. Automatic selection prefers USB
+Wi-Fi. It leaves existing connections unchanged when no USB adapter is found,
+and it does not silently fall back to onboard Wi-Fi if the selected USB adapter
+is unplugged.
 
 ```bash
-# Turn on with the default dim white color (48, 48, 48)
-sudo robopi-ws2812 on
+robopi-wifi-select status
+sudo robopi-wifi-select auto
+sudo robopi-wifi-select usb
+sudo robopi-wifi-select onboard
+```
 
-# Turn on with a custom RGB color
-sudo robopi-ws2812 on 255 80 0
+Changing interfaces interrupts the current wireless connection. See
+[Bundled USB Wi-Fi support](docs/usb-wifi-bundle.md) and
+[Wi-Fi selection](docs/wifi-selection.md) for modules, firmware, device
+identification, and recovery procedures.
 
-# Turn off
-sudo robopi-ws2812 off
+## BMS GPIO
 
-# Solid color: R G B
-sudo robopi-ws2812 solid 255 0 0
+`robopi-bms-gpio.service` only reads `/tmp/bms.sock`; it never sends commands
+to the BMS serial port. BMS integration needs
+`/opt/roboparty/include/bms_driver.hpp` and `bms.service` from
+`roboparty-base`. Without base, a systemd condition skips this service without
+affecting other addon features or standalone unit tests. It controls:
 
-# Flash: R G B [interval_ms] [count]
-# count=0 or omitted: run until Ctrl+C
+```text
+/sys/class/leds/dual_battery_b0/brightness
+/sys/class/leds/dual_battery_c2/brightness
+```
+
+The producer must write the 126-byte packet matching the current C++
+`BatteryStatus` definition. The old 121-byte format is incompatible. See
+[BMS GPIO](docs/bms-gpio.md) for the state mapping, conservative fallback
+behavior, and integration procedure.
+
+`robopi-hw-test` and `robopi-sig-key` also manipulate related GPIOs, so their
+services are disabled during package installation. Stop the BMS GPIO service
+before using either diagnostic tool, then restore it afterward:
+
+```bash
+sudo systemctl stop robopi-bms-gpio.service
+sudo robopi-sig-key --help
+# After diagnostics
+sudo systemctl start robopi-bms-gpio.service
+```
+
+## WS2812
+
+`robopi-ws2812` controls 12 LEDs on PWM6_M1 through
+`/dev/robopi-ws2812` and requires root privileges. Start with low RGB values
+to verify the power supply and wiring.
+
+```bash
+sudo robopi-ws2812 solid 32 32 32
 sudo robopi-ws2812 flash 0 255 0 500 10
-sudo robopi-ws2812 flash 0 0 255 200
-
-# Chase: R G B [step_ms] [width]
 sudo robopi-ws2812 chase 0 0 255 80 3
-
-# Rainbow: [step_ms]
 sudo robopi-ws2812 rainbow 40
-
-# Short demonstration, then turn off
-sudo robopi-ws2812 demo
-
-# Show help
+sudo robopi-ws2812 off
 robopi-ws2812 --help
 ```
 
-Continuous effects stop with `Ctrl+C` and turn the strip off before exiting.
+Press `Ctrl+C` to stop a continuous animation; the program turns the strip
+off before exiting. The package installs a prebuilt `robopi-ws2812.ko` for
+one target kernel and does not install or modify the device tree. The running
+kernel must match the module, and PWM6_M1 must already be enabled in the device
+tree. A kernel upgrade requires rebuilt modules and a new package.
 
-## Parameters
+## Fan
 
-| Parameter | Range | Description |
-|---|---:|---|
-| `R G B` | `0-255` | Red, green, and blue brightness |
-| `interval_ms` / `step_ms` | `10-60000` | Animation interval in milliseconds |
-| `count` | `0-1000000` | Flash count; `0` means continuous |
-| `width` | `1-12` | Number of illuminated chase pixels |
-
-Start with low RGB values such as `16-64` to avoid excessive power draw.
-
-The package enables the legacy-named `robopi-ws2812-white.service`. After the
-kernel module is loaded during boot, the service sets all LEDs to steady blue
-(`0 0 255`). Stopping the service turns the strip off:
+FAN_SW uses GPIO1_D7 (global GPIO 63). A high level enables the fan supply.
+The default service turns the fan on at boot and turns it off when stopped.
 
 ```bash
-systemctl status robopi-ws2812-white.service
-sudo systemctl stop robopi-ws2812-white.service
-sudo systemctl start robopi-ws2812-white.service
+sudo robopi-fan status
+sudo robopi-fan on
+sudo robopi-fan off
+systemctl status robopi-fan.service
 ```
 
-Full white has the highest power consumption. Make sure the 5 V supply and
-wiring can carry the current required by all 12 LEDs.
+## EtherCAN and USB capture
 
-## Build deb package
-
-The package contains the prebuilt module for its fixed target kernel:
+The HPM is the onboard EtherCAN controller and connects to the RK3588 through
+an onboard USB hub. The package installs EtherCAN firmware, HPM maintenance
+tools, and an HPM hardware-reset service. The firmware is installed at:
 
 ```text
-prebuilt/6.1.99-rt36-rockchip-rk3588/robopi-ws2812.ko
+/opt/roboparty/lib/firmware/ethercanfd_v1.0.5-20260829.bin
 ```
 
-Build the package on the ARM64 board:
+`usb_hub_reset` (GPIO4_B5) controls the hardware reset for the USB hub that
+hosts the onboard HPM. A high level disables the hub and holds the HPM in reset.
+A low level releases reset and starts the hub and HPM; low is the default state.
+Apply a short high pulse to refresh the HPM state and force USB
+re-enumeration:
 
 ```bash
-sudo apt install build-essential debhelper
-dpkg-buildpackage -us -uc -b
+# Disable the hub and hold the onboard HPM in hardware reset
+echo 1 | sudo tee /sys/class/leds/usb_hub_reset/brightness
+sleep 0.5
+
+# Release reset and restart the hub and onboard HPM
+echo 0 | sudo tee /sys/class/leds/usb_hub_reset/brightness
+
+# Wait for startup and verify that the HPM enumerated again
+sleep 15
+lsusb -d 1209:2323
 ```
 
-The `.deb` file will be generated in the parent directory.
+Do not leave `brightness` at `1`; the HPM remains offline while reset is
+asserted.
 
-## Install
+`hpm-reset.service` performs the same high-low pulse automatically. By
+default, it checks HPM VID:PID `1209:2323` every 2 seconds. After 10
+consecutive misses, it asserts the GPIO for 0.5 seconds, releases reset, and
+waits 15 seconds. Settings are in `/etc/default/hpm-reset`. The firmware
+flasher, `/opt/roboparty/bin/flash_hpm.sh`, is a maintenance interface and
+should only be run after confirming the firmware image and device state.
 
-The package installs a prebuilt module, so DKMS and kernel headers are not
-required on the target:
+USB capture is disabled by default. While reproducing a fault, uncompressed
+ring-buffer pcaps can be kept in `/run/usbcan`, with a default limit of
+`8 x 64 MiB = 512 MiB`. Copy a snapshot to persistent storage after the fault
+and analyze it offline:
 
 ```bash
-sudo apt install ../robopi-addon_*_arm64.deb
+sudo systemctl start usbcan-capture.service
+sudo usbcan-debug-snapshot
+sudo systemctl stop usbcan-capture.service
+
+analyze-ethercan-pcap /var/log/robopi/usbcan/<snapshot-directory>
 ```
 
-The module is installed under `/lib/modules/6.1.99-rt36-rockchip-rk3588/extra/`
-and loaded at boot via `/etc/modules-load.d/robopi-ws2812.conf`. Rebuild the
-`.ko` and publish a new package whenever the target kernel changes.
+See [USB-CAN capture](docs/usbcan-dump.md) for configuration, dependencies,
+capture filters, and resource costs.
 
-## Stable Ethernet MAC experiment
+## Stable Ethernet MAC
 
 `robopi-ethernet-mac` derives a stable, locally administered unicast MAC from
-the RK3588 `Serial` field in `/proc/cpuinfo`. The Chip ID is not exposed directly
-as the MAC.
-
-The package enables `robopi-ethernet-mac.service`. On the next boot it applies
-the derived MAC and requests DHCP again. The service is not started while the
-deb is being installed, so installation does not interrupt the current network.
-The default interface is configured in `/etc/default/robopi-ethernet-mac`:
+the RK3588 `Serial` field in `/proc/cpuinfo` without exposing the Chip ID
+directly. The default interface is configured in
+`/etc/default/robopi-ethernet-mac`:
 
 ```bash
 ETHERNET_INTERFACE=enP4p65s0
 ETHERNET_WAIT_SECONDS=60
 ```
 
-At boot, the tool waits up to this timeout for an active NetworkManager
-connection on the configured interface. The systemd service retries after five
-seconds if NetworkManager is still not ready.
-
-Run the read-only checks from a serial console before the first reboot:
+The service is explicitly left disabled after package installation. Run the
+read-only checks from a serial console or an alternative network connection:
 
 ```bash
 robopi-ethernet-mac check
 robopi-ethernet-mac status
 ```
 
-The tool stops if the Chip ID is empty, invalid, or all zero. `Derived MAC` and
-`Check MAC` must match.
-
-Applying the MAC interrupts Ethernet and requests a new DHCP address, so run it
-from a serial console:
+After confirming the interface name, apply the derived MAC. Both `apply` and
+`restore` reconnect the selected interface and may change its IP address:
 
 ```bash
-sudo robopi-ethernet-mac apply
+sudo robopi-ethernet-mac apply [interface]
+sudo robopi-ethernet-mac restore [interface]
 ```
 
-Pass a different interface name as the second argument when needed:
+Explicitly enable the boot service only when this behavior is required:
 
 ```bash
-sudo robopi-ethernet-mac apply enP4p65s0
+sudo systemctl enable --now robopi-ethernet-mac.service
 ```
 
-Restore NetworkManager's permanent-MAC policy with:
+## GPIO0_C2 drive strength
+
+`robopi-gpio0-c2-drive` can back up and modify the active boot DTB to select
+`pcfg_pull_down_drv_level_5` for GPIO0_C2. This is an explicit device-tree
+maintenance operation and is never performed automatically during package
+installation.
 
 ```bash
-sudo robopi-ethernet-mac restore
+sudo robopi-gpio0-c2-drive status
+sudo robopi-gpio0-c2-drive apply
+sudo reboot
+
+# Restore the DTB saved by the first apply
+sudo robopi-gpio0-c2-drive restore
+sudo reboot
 ```
 
-The tool does not remove DHCP lease files under `/var/lib/NetworkManager`.
-Record the Chip ID, derived MAC, and assigned IPv4 address on multiple boards to
-verify that each board receives a distinct identity and address.
+The matching kernel source patch is also installed at:
 
-Inspect the boot service with:
+```text
+/usr/share/robopi-addon/patches/0001-rk3588s-robopi2-gpio0-c2-max-drive.patch
+```
+
+## Install
+
+Check the architecture and running kernel before installation. The package
+supports ARM64 only and contains prebuilt modules for one fixed target kernel:
 
 ```bash
-systemctl status robopi-ethernet-mac.service
-journalctl -u robopi-ethernet-mac.service -b
+dpkg --print-architecture
+uname -r
+sudo apt install ./robopi-addon_*_arm64.deb
 ```
+
+Recommended post-installation checks:
+
+```bash
+systemctl --failed
+systemctl status robopi-bms-gpio.service robopi-fan.service
+systemctl status robopi-wifi-autoselect.service wifi-reset.service
+journalctl -b -p warning
+```
+
+## Build and test
+
+Native build on an ARM64 board:
+
+```bash
+sudo apt install build-essential debhelper fakeroot kmod unzip binutils
+dpkg-buildpackage -us -uc -b
+```
+
+Cross-build an ARM64 package on an x86_64/EPYC host:
+
+```bash
+sudo apt install build-essential debhelper fakeroot kmod unzip binutils \
+  gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+dpkg-buildpackage -us -uc -b -aarm64
+```
+
+`TARGET_KERNEL_RELEASE` selects the build target and must match the modules
+under the corresponding `prebuilt/<kernel-release>/` directory. For example:
+
+```bash
+TARGET_KERNEL_RELEASE=6.18.50-current-rockchip64 \
+  dpkg-buildpackage -us -uc -b -aarm64
+```
+
+> Release warning: the module maintenance paths in `debian/postinst`,
+> `debian/prerm`, and `debian/postrm` are currently hard-coded to
+> `6.1.99-rt36-rockchip-rk3588`. Before publishing a package for another
+> target kernel, make these scripts use the same `TARGET_KERNEL_RELEASE`;
+> otherwise installation or removal will operate on the wrong path.
+
+Regression tests that do not access hardware:
+
+```bash
+bash tests/usb-wifi-init-test.sh
+bash tests/wifi-autoselect-test.sh
+bash tests/wifi-reconnect-test.sh
+python3 tests/bms-gpio-test.py
+bash tests/usbcan-capture-test.sh
+bash tests/usbcan-snapshot-test.sh
+python3 -m unittest -v tests/test_analyze_ethercan_pcap.py
+```
+
+The generated `.deb` is written to the parent directory.
+
+## Troubleshooting
+
+```bash
+systemctl --failed
+journalctl -b -u <service-name>
+lsusb -t
+iw dev
+ip -details link
+uname -r
+```
+
+If a prebuilt module fails to load, first compare `uname -r` with the module
+directory in the package. For Wi-Fi problems, run `robopi-wifi-select status`
+and inspect the current-boot logs for the three Wi-Fi services.
 
 ## Uninstall
 
@@ -186,137 +331,7 @@ sudo apt remove robopi-addon
 sudo apt purge robopi-addon
 ```
 
-The removal scripts unload the running module and refresh the target kernel's
-module dependency index.
-
-## Compile-time configuration
-
-The following settings are defined near the top of the kernel module
-`src/robopi-ws2812.c` and require a rebuild after modification:
-
-```c
-#define LED_COUNT       12
-#define PWM6_PHYS       0xfebd0020
-#define WS2812_PERIOD_NS 1250
-#define WS2812_T0H_NS     330
-#define WS2812_T1H_NS     650
-#define WS2812_RESET_US   300
-```
-
-The driver derives PWM register ticks from the actual PWM clock at load time.
-It uses continuous PWM with lock-latched duty updates, avoiding inter-bit gaps.
-At 24 MHz the values are 30/8/16 ticks. Validate timing with an oscilloscope.
-
-## SIG rising-edge LED trigger
-
-| Function | GPIO | GPIO character device | Active state |
-|---|---|---|---|
-| SIG input | GPIO1_D5 | `/dev/gpiochip1`, offset 29 | Rising edge |
-| LED output | GPIO0_C2 | `/dev/gpiochip0`, offset 18 | High level |
-
-`robopi-sig-key` starts with the LED off. A low-to-high transition on SIG turns the LED on. A later falling level does not directly turn it off. Exiting the program always turns the LED off.
-
-> SIG must remain within the voltage limits of the GPIO1_D5 IO domain. Never drive SIG directly with 5 V.
-
-### Foreground test
-
-Latch the LED on after a rising edge:
-
-```bash
-sudo robopi-sig-key
-```
-
-Expected startup and trigger output:
-
-```text
-Started: waiting for SIG rising edge; LED is off.
-SIG rising edge -> LED on
-KEY_PRESSED
-```
-
-Press `Ctrl+C` to exit and turn the LED off.
-
-### Timed LED output
-
-Keep the LED on for 1000 ms after each rising edge:
-
-```bash
-sudo robopi-sig-key --led-on-ms 1000
-```
-
-### Other options
-
-```bash
-robopi-sig-key --help
-sudo robopi-sig-key --debounce-ms 30
-sudo robopi-sig-key --on-press '/opt/my-app/start.sh'
-sudo robopi-sig-key --sig-active-low
-sudo robopi-sig-key --led-active-low
-```
-
-### systemd service
-
-After validating the foreground test, enable the service at boot:
-
-```bash
-sudo systemctl enable --now robopi-sig-key.service
-journalctl -u robopi-sig-key.service -f
-```
-
-## FAN_SW fan switch
-
-FAN_SW uses GPIO1_D7 (global GPIO 63). According to the board schematic, the signal is active high: a high level enables `VCC_5V_FAN`, while a low level turns the fan supply off.
-
-```bash
-# Turn the fan on
-sudo robopi-fan on
-
-# Turn the fan off
-sudo robopi-fan off
-
-# Show the current state
-robopi-fan status
-```
-
-The command uses the GPIO sysfs interface so the selected output remains in effect after the command exits. The package enables `robopi-fan.service`, which turns FAN_SW on automatically at boot. Stopping the service turns the fan off:
-
-```bash
-systemctl status robopi-fan.service
-sudo systemctl stop robopi-fan.service
-sudo systemctl start robopi-fan.service
-```
-### GPIO0_C2 maximum-drive device-tree patch
-
-The package ships an optional kernel source patch for the RoboPi2 CM5 device
-tree at:
-
-```text
-/usr/share/robopi-addon/patches/0001-rk3588s-robopi2-gpio0-c2-max-drive.patch
-```
-
-Apply it from the root of the matching Linux kernel source tree, rebuild
-`rk3588s-orangepi-cm5-robopi2.dtb`, install the rebuilt DTB, and reboot.  The
-patch selects `pcfg_pull_down_drv_level_5` for GPIO0_C2.  On RK3588 GPIO0_C,
-level 5 is the maximum-drive register setting (approximately 25 ohms); level
-numbers are hardware encodings and are not ordered by output strength.
-
-```bash
-git apply /usr/share/robopi-addon/patches/0001-rk3588s-robopi2-gpio0-c2-max-drive.patch
-```
-
-On an installed RoboPi2 system, the packaged helper can safely patch the
-configured boot DTB without a kernel source tree:
-
-```bash
-sudo robopi-gpio0-c2-drive status
-sudo robopi-gpio0-c2-drive apply
-sudo reboot
-```
-
-The first `apply` preserves the original DTB beside it with the suffix
-`.robopi-before-gpio0-c2-drive`. To roll back, run:
-
-```bash
-sudo robopi-gpio0-c2-drive restore
-sudo reboot
-```
+The removal scripts stop the WS2812, fan, and USB capture services, attempt to
+unload the WS2812 kernel module, and refresh module dependencies. Existing
+NetworkManager connection profiles and diagnostic snapshots created at runtime
+are not removed automatically.

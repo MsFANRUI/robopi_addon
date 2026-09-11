@@ -1,5 +1,6 @@
 [Unit]
 Description=RoboPi battery GPIO control from TWS Unix socket
+ConditionPathExists=/opt/roboparty/include/bms_driver.hpp
 Wants=bms.service
 After=bms.service robopi-hw-test.service robopi-sig-key.service
 Conflicts=robopi-hw-test.service robopi-sig-key.service

@@ -2,10 +2,9 @@
 
 [English](README.md)
 
-`robopi-addon` 是 RoboPi RK3588S（ARM64）的板级支持包，依赖
-`roboparty-base (>= 1.0.0)`。它把 Wi-Fi、BMS GPIO、风扇、WS2812、EtherCAN
-维护工具和现场诊断工具统一安装到 `/opt/roboparty`，并为常用命令提供
-`/usr/bin` 入口。
+`robopi-addon` 是 RoboPi RK3588S（ARM64）的板级支持包，可独立安装，不强制依赖
+`roboparty-base`。它把 Wi-Fi、BMS GPIO、风扇、WS2812、EtherCAN 维护工具和现场
+诊断工具统一安装到 `/opt/roboparty`，并为常用命令提供 `/usr/bin` 入口。
 
 这个包会配置并启用部分 systemd 服务。首次安装或升级前，建议保留串口或另一条
 有线连接，避免 Wi-Fi 自动切换或设备重启影响当前 SSH 会话。
@@ -36,7 +35,7 @@
 | `robopi-bms-gpio.service` | 启用 | 根据 BMS 状态控制双电池 GPIO 指示灯 |
 | `robopi-fan.service` | 启用 | 开机打开 FAN_SW |
 | `robopi-ws2812-white.service` | 启用 | 开机执行 `solid 30 30 30`，停止时熄灯 |
-| `hpm-reset.service` | 启用 | EtherCAN USB 连续缺失时复位 USB Hub |
+| `hpm-reset.service` | 启用 | EtherCAN USB 连续缺失时硬复位板载 HPM |
 | `robopi-ethernet-mac.service` | 禁用 | 仅在确认网卡名和网络影响后手动启用 |
 | `robopi-hw-test.service` | 禁用 | 产测/诊断工具，与 BMS GPIO 服务互斥 |
 | `robopi-sig-key.service` | 禁用 | SIG/按键诊断工具，与 BMS GPIO 服务互斥 |
@@ -65,7 +64,10 @@ sudo robopi-wifi-select onboard
 
 ## BMS GPIO
 
-`robopi-bms-gpio.service` 只读取 `/tmp/bms.sock`，不会向 BMS 串口写命令。它控制：
+`robopi-bms-gpio.service` 只读取 `/tmp/bms.sock`，不会向 BMS 串口写命令。BMS
+集成功能需要 `roboparty-base` 提供的 `/opt/roboparty/include/bms_driver.hpp` 和
+`bms.service`；未安装 base 时，该服务通过 systemd 条件检查跳过，不影响 addon 的
+其他功能或独立单元测试。它控制：
 
 ```text
 /sys/class/leds/dual_battery_b0/brightness
@@ -118,14 +120,35 @@ systemctl status robopi-fan.service
 
 ## EtherCAN 与 USB 抓包
 
-软件包安装 EtherCAN 固件、HPM 维护工具和 USB Hub 复位服务。固件位于：
+HPM 是板载 EtherCAN 控制器，通过板载 USB Hub 接入 RK3588。软件包安装 EtherCAN
+固件、HPM 维护工具和 HPM 硬复位服务。固件位于：
 
 ```text
-/opt/roboparty/lib/firmware/ethercanfd_v1.0.5-20260826.bin
+/opt/roboparty/lib/firmware/ethercanfd_v1.0.5-20260829.bin
 ```
 
-`hpm-reset.service` 默认每 2 秒检查一次 VID:PID `1209:2323`，连续 10 次缺失后通过
-GPIO4_B5 复位 USB Hub。其参数位于 `/etc/default/hpm-reset`。固件刷写脚本
+`usb_hub_reset`（GPIO4_B5）是板载 HPM 所在 USB Hub 的硬复位控制：高电平关闭
+Hub 并保持 HPM 复位，低电平释放复位、恢复 Hub 和 HPM，默认状态为低电平。因此
+给这个 GPIO 一个高脉冲即可刷新 HPM 状态并触发 USB 重新枚举：
+
+```bash
+# 关闭 Hub，让板载 HPM 进入硬复位
+echo 1 | sudo tee /sys/class/leds/usb_hub_reset/brightness
+sleep 0.5
+
+# 释放复位，重新启动 Hub 和板载 HPM
+echo 0 | sudo tee /sys/class/leds/usb_hub_reset/brightness
+
+# 等待启动后确认 HPM 已重新枚举
+sleep 15
+lsusb -d 1209:2323
+```
+
+不要把 `brightness` 长时间留在 `1`，否则 HPM 会一直离线。
+
+`hpm-reset.service` 会自动完成同样的高低电平脉冲。它默认每 2 秒检查一次 HPM 的
+VID:PID `1209:2323`，连续 10 次缺失后拉高 GPIO 0.5 秒，再释放复位并等待 15 秒。
+参数位于 `/etc/default/hpm-reset`。固件刷写脚本
 `/opt/roboparty/bin/flash_hpm.sh` 属于维护入口，应在明确固件和设备状态后手动使用。
 
 USB 抓包默认关闭。问题复现时可把未压缩环形 pcap 保存在 `/run/usbcan`，默认上限
