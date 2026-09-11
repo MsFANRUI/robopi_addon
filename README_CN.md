@@ -159,7 +159,7 @@ sudo systemctl start usbcan-capture.service
 sudo usbcan-debug-snapshot
 sudo systemctl stop usbcan-capture.service
 
-analyze-ethercan-pcap /var/log/robopi/usbcan/<快照目录>
+analyze-ethercan-pcap /var/lib/robopi/usbcan-snapshots/<快照目录>
 ```
 
 配置、依赖、抓包过滤器和资源开销见 [USB-CAN 抓包说明](docs/usbcan-dump.md)。

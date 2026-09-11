@@ -181,7 +181,7 @@ sudo systemctl start usbcan-capture.service
 sudo usbcan-debug-snapshot
 sudo systemctl stop usbcan-capture.service
 
-analyze-ethercan-pcap /var/log/robopi/usbcan/<snapshot-directory>
+analyze-ethercan-pcap /var/lib/robopi/usbcan-snapshots/<snapshot-directory>
 ```
 
 See [USB-CAN capture](docs/usbcan-dump.md) for configuration, dependencies,

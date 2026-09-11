@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # SPDX-FileCopyrightText: 
 # Copyright (c) 2026 https://github.com/hpmicro]

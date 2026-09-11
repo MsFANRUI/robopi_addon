@@ -160,10 +160,14 @@ sudo ls -lh /run/usbcan/
 sudo usbcan-debug-snapshot
 ```
 
+snapshot 默认写入 `/var/lib/robopi/usbcan-snapshots`，避免部分 Armbian 系统中容量
+很小的 `/var/log` zram。复制前会检查目标文件系统剩余空间；空间不足时不会暂停抓包。
+复制中途失败时会删除本次不完整目录，并恢复原本运行的抓包服务。
+
 命令会输出 snapshot 目录，例如：
 
 ```text
-/var/log/usbcan-snapshots/20260911-103000
+/var/lib/robopi/usbcan-snapshots/20260911-103000
 ```
 
 复制约 512 MB 数据时抓包会暂停数秒，具体时间取决于存储介质。脚本使用 trap
@@ -171,7 +175,7 @@ sudo usbcan-debug-snapshot
 
 ```bash
 systemctl is-active usbcan-capture.service
-sudo du -sh /var/log/usbcan-snapshots/*
+sudo du -sh /var/lib/robopi/usbcan-snapshots/*
 ```
 
 ## 空闲时压缩
@@ -180,7 +184,7 @@ sudo du -sh /var/log/usbcan-snapshots/*
 删除源目录：
 
 ```bash
-snapshot=/var/log/usbcan-snapshots/20260911-103000
+snapshot=/var/lib/robopi/usbcan-snapshots/20260911-103000
 sudo nice -n 19 ionice -c 3 \
   tar -C "$(dirname "$snapshot")" \
   -czf "${snapshot}.tar.gz" "$(basename "$snapshot")"
@@ -267,7 +271,7 @@ sudo systemctl disable --now usbcan-capture.service
 设备重启时 `/run/usbcan` 会自动清空。持久 snapshot 需要明确确认后手动删除：
 
 ```bash
-sudo ls -lh /var/log/usbcan-snapshots/
+sudo ls -lh /var/lib/robopi/usbcan-snapshots/
 ```
 
 USB 抓包可能包含同一 Bus 上其他设备的数据。向外发送 snapshot 前，应确认抓取范围

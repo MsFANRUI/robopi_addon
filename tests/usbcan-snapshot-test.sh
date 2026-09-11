@@ -41,3 +41,58 @@ grep -q '^systemctl:stop usbcan-capture.service$' "$tmpdir/systemctl.log"
 grep -q '^systemctl:start usbcan-capture.service$' "$tmpdir/systemctl.log"
 
 echo 'PASS: snapshot copies capture and diagnostics, then restarts active service'
+
+# A failed copy must remove the partial snapshot and restart capture.
+mkdir -p "$tmpdir/fail-snapshots"
+cat > "$tmpdir/bin/cp" <<'EOF'
+#!/bin/sh
+for destination do :; done
+printf 'partial\n' > "$destination/usbcan.pcap0"
+exit 1
+EOF
+chmod +x "$tmpdir/bin/cp"
+
+if PATH="$tmpdir/bin:/usr/bin:/bin" \
+    USBCAN_ALLOW_NON_ROOT=yes \
+    USBCAN_CAPTURE_DIR="$tmpdir/capture" \
+    USBCAN_SNAPSHOT_DIR="$tmpdir/fail-snapshots" \
+    USBCAN_SNAPSHOT_LOCK="$tmpdir/fail-snapshot.lock" \
+    USBCAN_TEST_LOG="$tmpdir/fail-systemctl.log" \
+    scripts/usbcan-debug-snapshot.sh; then
+    echo 'snapshot unexpectedly succeeded with failing cp' >&2
+    exit 1
+fi
+
+[[ -z "$(find "$tmpdir/fail-snapshots" -mindepth 1 -maxdepth 1 -print -quit)" ]]
+grep -q '^systemctl:stop usbcan-capture.service$' "$tmpdir/fail-systemctl.log"
+grep -q '^systemctl:start usbcan-capture.service$' "$tmpdir/fail-systemctl.log"
+
+echo 'PASS: failed copy removes partial snapshot and restarts active service'
+
+# Insufficient target space must be rejected before capture is stopped.
+rm "$tmpdir/bin/cp"
+cat > "$tmpdir/bin/df" <<'EOF'
+#!/bin/sh
+cat <<'OUTPUT'
+Filesystem 1024-blocks Used Available Capacity Mounted on
+testfs 100 99 1 99% /test
+OUTPUT
+EOF
+chmod +x "$tmpdir/bin/df"
+mkdir -p "$tmpdir/full-snapshots"
+
+if PATH="$tmpdir/bin:/usr/bin:/bin" \
+    USBCAN_ALLOW_NON_ROOT=yes \
+    USBCAN_CAPTURE_DIR="$tmpdir/capture" \
+    USBCAN_SNAPSHOT_DIR="$tmpdir/full-snapshots" \
+    USBCAN_SNAPSHOT_LOCK="$tmpdir/full-snapshot.lock" \
+    USBCAN_TEST_LOG="$tmpdir/full-systemctl.log" \
+    scripts/usbcan-debug-snapshot.sh; then
+    echo 'snapshot unexpectedly succeeded without enough target space' >&2
+    exit 1
+fi
+
+[[ ! -e "$tmpdir/full-systemctl.log" ]]
+[[ -z "$(find "$tmpdir/full-snapshots" -mindepth 1 -maxdepth 1 -print -quit)" ]]
+
+echo 'PASS: insufficient space is rejected before capture is stopped'
