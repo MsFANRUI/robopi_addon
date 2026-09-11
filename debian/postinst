@@ -2,7 +2,7 @@
 set -e
 
 MODULE_NAME=robopi-ws2812
-TARGET_KERNEL_RELEASE=6.18.50-current-rockchip64
+TARGET_KERNEL_RELEASE=6.18.51-current-rockchip64
 MODULE_PATH="/lib/modules/$TARGET_KERNEL_RELEASE/extra/$MODULE_NAME.ko"
 
 is_chroot()

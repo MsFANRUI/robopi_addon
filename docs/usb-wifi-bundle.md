@@ -1,13 +1,13 @@
 # AIC USB 无线网卡内置驱动
 
 支持已验证的 UGREEN AX300 / AIC8800DC。目标内核为
-`6.18.50-current-rockchip64`（PREEMPT_RT）。相同版本字符串仍要求兼容的内核
+`6.18.51-current-rockchip64`（PREEMPT_RT）。相同版本字符串仍要求兼容的内核
 配置和符号 ABI；换内核时必须重新编译、测试并更新预编译文件及 SHA256，不能
 强制加载。
 
 预编译模块目录：
 
-- `prebuilt/6.18.50-current-rockchip64/`（含 6.18 API 补丁后的源码编译产物）
+- `prebuilt/6.18.51-current-rockchip64/`（含 6.18 API 补丁后的源码编译产物）
 
 安装 `sudo apt install ./robopi-addon_<version>_arm64.deb` 后，无需另行编译驱动：
 
@@ -48,7 +48,7 @@ iw dev
 原始归档为用户提供的 `UGREEN_AIC-AX300_LinuxDriver_V1.6.zip`，保存在
 `prebuilt/`，并随二进制包放入 `/usr/share/doc/robopi-addon/vendor/`。
 归档包含本次编译使用的驱动源码及固件，校验值在 `prebuilt/aic8800.sha256`。
-模块于 2026-09-10 在 `6.18.50-current-rockchip64` 上应用
+模块于 2026-09-11 在 `6.18.51-current-rockchip64` 上应用
 `patches/aic8800-linux-6.18-compat.patch` 后编译：
 
 ```bash

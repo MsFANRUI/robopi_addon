@@ -281,8 +281,8 @@ sudo apt install build-essential debhelper fakeroot kmod unzip binutils \
 dpkg-buildpackage -us -uc -b -aarm64
 ```
 
-The package targets `6.18.50-current-rockchip64`; its modules are stored under
-the matching `prebuilt/6.18.50-current-rockchip64/` directory:
+The package targets `6.18.51-current-rockchip64`; its modules are stored under
+the matching `prebuilt/6.18.51-current-rockchip64/` directory:
 
 ```bash
 dpkg-buildpackage -us -uc -b -aarm64

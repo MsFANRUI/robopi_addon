@@ -254,8 +254,8 @@ sudo apt install build-essential debhelper fakeroot kmod unzip binutils \
 dpkg-buildpackage -us -uc -b -aarm64
 ```
 
-软件包固定面向 `6.18.50-current-rockchip64`，模块位于对应的
-`prebuilt/6.18.50-current-rockchip64/` 目录：
+软件包固定面向 `6.18.51-current-rockchip64`，模块位于对应的
+`prebuilt/6.18.51-current-rockchip64/` 目录：
 
 ```bash
 dpkg-buildpackage -us -uc -b -aarm64
