@@ -1,10 +1,9 @@
 #!/bin/sh
 # Install-time and boot-time preparation; never changes NetworkManager profiles.
 set -eu
-kver=$(uname -r)
-# Load only when aic8800_fdrv exists for the running kernel.
-if ! modinfo -k "$kver" aic8800_fdrv >/dev/null 2>&1; then
-    echo "robopi-usb-wifi: aic8800_fdrv not found for $kver; skip" >&2
+target=6.18.51-current-rockchip64
+if [ "$(uname -r)" != "$target" ]; then
+    echo "robopi-usb-wifi: modules require $target; skipping current kernel $(uname -r)" >&2
     exit 0
 fi
 modprobe aic_load_fw
