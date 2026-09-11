@@ -281,19 +281,12 @@ sudo apt install build-essential debhelper fakeroot kmod unzip binutils \
 dpkg-buildpackage -us -uc -b -aarm64
 ```
 
-`TARGET_KERNEL_RELEASE` selects the build target and must match the modules
-under the corresponding `prebuilt/<kernel-release>/` directory. For example:
+The package targets `6.18.50-current-rockchip64`; its modules are stored under
+the matching `prebuilt/6.18.50-current-rockchip64/` directory:
 
 ```bash
-TARGET_KERNEL_RELEASE=6.18.50-current-rockchip64 \
-  dpkg-buildpackage -us -uc -b -aarm64
+dpkg-buildpackage -us -uc -b -aarm64
 ```
-
-> Release warning: the module maintenance paths in `debian/postinst`,
-> `debian/prerm`, and `debian/postrm` are currently hard-coded to
-> `6.1.99-rt36-rockchip-rk3588`. Before publishing a package for another
-> target kernel, make these scripts use the same `TARGET_KERNEL_RELEASE`;
-> otherwise installation or removal will operate on the wrong path.
 
 Regression tests that do not access hardware:
 

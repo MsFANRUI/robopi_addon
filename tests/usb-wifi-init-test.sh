@@ -11,7 +11,7 @@ mock_kernel=unrelated-kernel
 out=$( . scripts/robopi-usb-wifi-init.sh 2>&1 )
 [[ "$out" == *'skipping current kernel'* && "$out" != *MODPROBE* ]]
 
-mock_kernel=6.1.99-rt36-rockchip-rk3588
+mock_kernel=6.18.50-current-rockchip64
 out=$( . scripts/robopi-usb-wifi-init.sh )
 [[ "$out" == *MODPROBE:aic_load_fw* && "$out" == *MODPROBE:aic8800_fdrv* ]]
 [[ "$out" == *'preparation complete'* && "$out" != *ERROR* ]]

@@ -1,3 +1,12 @@
+robopi-addon (1.7.0-1) stable; urgency=medium
+
+  * Drop all modules, packaging paths and CI targets for the legacy
+    6.1.99-rt36-rockchip-rk3588 kernel.
+  * Build and publish one ARM64 package for 6.18.50-current-rockchip64 using
+    the standard robopi-addon_<version>_arm64.deb filename.
+
+ -- changchuanyong <1984715306@qq.com>  Fri, 11 Sep 2026 14:30:00 +0800
+
 robopi-addon (1.6.31-1) stable; urgency=medium
 
   * Add robopi-ethernet-static script and service: pin Wired connection 1 to

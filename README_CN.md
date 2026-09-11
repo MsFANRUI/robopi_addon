@@ -254,17 +254,12 @@ sudo apt install build-essential debhelper fakeroot kmod unzip binutils \
 dpkg-buildpackage -us -uc -b -aarm64
 ```
 
-构建目标内核由 `TARGET_KERNEL_RELEASE` 控制；必须与对应 `prebuilt/<内核版本>/`
-目录中的模块一致。例如：
+软件包固定面向 `6.18.50-current-rockchip64`，模块位于对应的
+`prebuilt/6.18.50-current-rockchip64/` 目录：
 
 ```bash
-TARGET_KERNEL_RELEASE=6.18.50-current-rockchip64 \
-  dpkg-buildpackage -us -uc -b -aarm64
+dpkg-buildpackage -us -uc -b -aarm64
 ```
-
-> 发布注意：当前 `debian/postinst`、`debian/prerm` 和 `debian/postrm` 中的模块维护
-> 路径仍固定为 `6.1.99-rt36-rockchip-rk3588`。构建其他目标内核的包之前，必须先让
-> 这些维护脚本使用同一个 `TARGET_KERNEL_RELEASE`，否则安装或卸载时会处理错误路径。
 
 不访问硬件的回归测试：
 

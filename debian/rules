@@ -9,8 +9,6 @@ WS2812_CC := $(DEB_HOST_GNU_TYPE)-gcc
 endif
 
 VERSION := $(shell dpkg-parsechangelog -S Version | cut -d'-' -f1)
-TARGET_KERNEL_RELEASE ?= 6.18.50-current-rockchip64
-export TARGET_KERNEL_RELEASE
 
 %:
 	dh $@
@@ -20,17 +18,9 @@ override_dh_auto_build:
 
 override_dh_auto_clean:
 	$(MAKE) clean
-	rm -f debian/robopi-addon.postinst
-
-# debian/postinst is a template; inject the build matrix kernel before packaging.
-execute_before_dh_installdeb:
-	sed 's|@TARGET_KERNEL_RELEASE@|$(TARGET_KERNEL_RELEASE)|g' \
-		debian/postinst > debian/robopi-addon.postinst
-	chmod 0755 debian/robopi-addon.postinst
 
 override_dh_auto_install:
-	$(MAKE) DESTDIR=$(CURDIR)/debian/robopi-addon VERSION=$(VERSION) \
-		TARGET_KERNEL_RELEASE=$(TARGET_KERNEL_RELEASE) install
+	$(MAKE) DESTDIR=$(CURDIR)/debian/robopi-addon VERSION=$(VERSION) install
 
 override_dh_installsystemd:
 	dh_installsystemd --no-enable --no-start

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install-time and boot-time preparation; never changes NetworkManager profiles.
 set -eu
-target=@TARGET_KERNEL_RELEASE@
+target=6.18.50-current-rockchip64
 if [ "$(uname -r)" != "$target" ]; then
     echo "robopi-usb-wifi: modules require $target; skipping current kernel $(uname -r)" >&2
     exit 0

@@ -2,7 +2,7 @@
 
 Modules are built against exact RoboPi target kernels. Expected properties:
 
-## 6.18.50-current-rockchip64 (default)
+## 6.18.50-current-rockchip64
 
 ```text
 architecture: ARM aarch64
@@ -14,13 +14,6 @@ Files:
 - `6.18.50-current-rockchip64/aic_load_fw.ko`
 - `6.18.50-current-rockchip64/aic8800_fdrv.ko` (UGREEN AX300 + Linux 6.18 API patches)
 - `6.18.50-current-rockchip64/robopi-ws2812.ko` (`noop_llseek` for 6.12+)
-
-## 6.1.99-rt36-rockchip-rk3588 (legacy)
-
-```text
-architecture: ARM aarch64
-vermagic:     6.1.99-rt36-rockchip-rk3588 SMP preempt_rt mod_unload aarch64
-```
 
 Rebuild and replace modules whenever the target kernel version, configuration,
 or symbol versions change. Never force-load a mismatched module.

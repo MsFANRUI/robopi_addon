@@ -4,7 +4,7 @@
 # Build settings. A package must contain modules built for exactly one kernel.
 CC ?= gcc
 CFLAGS ?= -O3 -Wall -Wextra
-TARGET_KERNEL_RELEASE ?= 6.18.50-current-rockchip64
+TARGET_KERNEL_RELEASE := 6.18.50-current-rockchip64
 KDIR ?= /lib/modules/$(TARGET_KERNEL_RELEASE)/build
 PREBUILT_MODULE ?= prebuilt/$(TARGET_KERNEL_RELEASE)/robopi-ws2812.ko
 
@@ -69,13 +69,8 @@ install: all check-prebuilt-module check-prebuilt-wifi
 	install -D -m 0644 etc/udev/rules.d/aic.rules $(DESTDIR)/etc/udev/rules.d/aic.rules
 	mkdir -p $(DESTDIR)/opt/roboparty/bin $(DESTDIR)/lib/systemd/system
 
-	# Substitute the selected kernel release into runtime Wi-Fi components.
-	sed 's/@TARGET_KERNEL_RELEASE@/$(TARGET_KERNEL_RELEASE)/g' \
-		scripts/robopi-usb-wifi-init.sh > $(DESTDIR)/opt/roboparty/bin/robopi-usb-wifi-init
-	chmod 0755 $(DESTDIR)/opt/roboparty/bin/robopi-usb-wifi-init
-	sed 's/@TARGET_KERNEL_RELEASE@/$(TARGET_KERNEL_RELEASE)/g' \
-		etc/systemd/system/robopi-usb-wifi.service > $(DESTDIR)/lib/systemd/system/robopi-usb-wifi.service
-	chmod 0644 $(DESTDIR)/lib/systemd/system/robopi-usb-wifi.service
+	install -D -m 0755 scripts/robopi-usb-wifi-init.sh $(DESTDIR)/opt/roboparty/bin/robopi-usb-wifi-init
+	install -D -m 0644 etc/systemd/system/robopi-usb-wifi.service $(DESTDIR)/lib/systemd/system/robopi-usb-wifi.service
 
 	# Keep operator documentation and the original vendor archive for traceability.
 	install -D -m 0644 docs/usb-wifi-bundle.md $(DESTDIR)/usr/share/doc/robopi-addon/usb-wifi-bundle.md

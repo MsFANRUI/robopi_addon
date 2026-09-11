@@ -76,13 +76,6 @@ check_hpm_usb() {
         fi
     done
 
-    # Method 3: /proc/bus/usb/devices (legacy kernel compatibility)
-    if [ -f /proc/bus/usb/devices ]; then
-        if grep -q "Vendor=${HPM_VID}.*ProdID=${HPM_PID}" /proc/bus/usb/devices 2>/dev/null; then
-            return 0
-        fi
-    fi
-
     log_msg "WARN" "HPM USB device ${HPM_VID}:${HPM_PID} (roboto_usb4can) not enumerated"
     return 1
 }
