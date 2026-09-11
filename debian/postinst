@@ -2,7 +2,7 @@
 set -e
 
 MODULE_NAME=robopi-ws2812
-TARGET_KERNEL_RELEASE=6.1.99-rt36-rockchip-rk3588
+TARGET_KERNEL_RELEASE=@TARGET_KERNEL_RELEASE@
 MODULE_PATH="/lib/modules/$TARGET_KERNEL_RELEASE/extra/$MODULE_NAME.ko"
 
 is_chroot()
@@ -40,6 +40,7 @@ if [ "$1" = configure ]; then
     systemctl enable wifi-reset.service 2>/dev/null || true
     systemctl enable hpm-reset.service 2>/dev/null || true
     systemctl disable robopi-ethernet-mac.service 2>/dev/null || true
+    systemctl enable robopi-ethernet-static.service 2>/dev/null || true
     systemctl disable robopi-hw-test.service robopi-sig-key.service 2>/dev/null || true
     systemctl enable robopi-bms-gpio.service 2>/dev/null || true
     systemctl enable robopi-fan.service 2>/dev/null || true
@@ -54,12 +55,25 @@ if [ "$1" = configure ]; then
         systemctl restart robopi-usb-wifi.service || echo "robopi-addon: USB Wi-Fi initialization failed; inspect journalctl -u robopi-usb-wifi" >&2
         udevadm control --reload-rules || true
         echo "robopi-addon: USB Wi-Fi naming rule installed; reboot or replug USB Wi-Fi to apply wlan1."
+        # Default onboard wlan0 to unmanaged when no selection exists yet.
+        nm_live=/etc/NetworkManager/conf.d/90-robopi-wifi-select.conf
+        if [ ! -f /etc/roboparty/wifi-interface ] && [ ! -f "$nm_live" ]; then
+            install -d /etc/NetworkManager/conf.d
+            printf '%s\n' \
+                '[device-robopi-wifi-select]' \
+                'match-device=interface-name:wlan0' \
+                'managed=0' > "$nm_live"
+            chmod 0644 "$nm_live"
+            nmcli general reload 2>/dev/null || true
+            echo "robopi-addon: onboard wlan0 unmanaged by default; select with robopi-wifi-select usb|onboard wlan0"
+        fi
         # Also scan already plugged-in adapters; reloading udev rules alone does
         # not activate SYSTEMD_WANTS on a device that is already active.
         systemctl restart --no-block robopi-wifi-autoselect.service || true
         running_kernel=$(uname -r)
         if [ "$running_kernel" = "$TARGET_KERNEL_RELEASE" ]; then
-            modprobe "$MODULE_NAME"
+            # Orange Pi / boards without PWM6_M1 return ENODEV; do not fail install.
+            modprobe "$MODULE_NAME" || echo "robopi-addon: $MODULE_NAME not available on this board (PWM6_M1 missing?)" >&2
         else
             echo "robopi-addon: module targets $TARGET_KERNEL_RELEASE; current kernel is $running_kernel" >&2
             echo "robopi-addon: module will load after booting the matching kernel" >&2

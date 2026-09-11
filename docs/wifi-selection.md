@@ -1,5 +1,8 @@
 # USB / 板载 Wi-Fi 切换
 
+1.6.29 起：尚无网卡选择时，板载 `wlan0` 默认为 unmanaged。
+需要板载时执行 `sudo robopi-wifi-select onboard wlan0`（有线/串口）。
+
 ## 1.6.20 起：USB 网卡固定为 wlan1
 
 单张 USB 无线网卡使用 `wlan1`，板载无线不改名。包内的

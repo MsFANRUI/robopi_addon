@@ -1,5 +1,14 @@
+robopi-addon (1.6.30-1) stable; urgency=medium
+
+  * Default onboard Wi-Fi (wlan0) to unmanaged when no selection exists.
+  * Recovery: sudo robopi-wifi-select onboard wlan0 (Ethernet or serial).
+
+ -- changchuanyong <1984715306@qq.com>  Fri, 11 Sep 2026 12:00:00 +0800
+
 robopi-addon (1.6.29-1) stable; urgency=medium
 
+  * 每次开机将有线连接 1 固定为 192.168.13.1/24，不提供默认路由或 DNS。
+  * 安装时仅启用静态地址服务，不立即激活连接，不修改 Wi-Fi。
   * Add a low-impact usbmon ring recorder and debug snapshot command.
   * Add offline EtherCANFD PCAP analysis with snapshot directory support.
   * Update the bundled EtherCANFD firmware to the 20260829 build.
