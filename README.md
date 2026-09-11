@@ -16,6 +16,8 @@ be enabled by the system.
 
 - Persistent USB/onboard Wi-Fi selection: `sudo robopi-wifi-select usb`;
   see [usage and recovery](docs/wifi-selection.md).
+- Low-impact USB-CAN ring capture, debug snapshots, and offline EtherCANFD
+  analysis; see [USB-CAN capture](docs/usbcan-dump.md).
 
 - `robopi-ws2812` command-line controller
 - `robopi-ws2812` kernel transmitter and `/dev/robopi-ws2812`

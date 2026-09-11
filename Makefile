@@ -37,8 +37,14 @@ check-prebuilt-wifi:
 
 install: all check-prebuilt-module check-prebuilt-wifi
 	install -D -m 0755 scripts/robopi-bms-gpio.py $(DESTDIR)/opt/roboparty/bin/robopi-bms-gpio
+	install -D -m 0755 scripts/analyze_ethercan_pcap.py $(DESTDIR)/opt/roboparty/bin/analyze-ethercan-pcap
+	install -D -m 0755 scripts/usbcan-capture.sh $(DESTDIR)/opt/roboparty/bin/usbcan-capture
+	install -D -m 0755 scripts/usbcan-debug-snapshot.sh $(DESTDIR)/opt/roboparty/bin/usbcan-debug-snapshot
 	install -D -m 0644 etc/systemd/system/robopi-bms-gpio.service $(DESTDIR)/lib/systemd/system/robopi-bms-gpio.service
+	install -D -m 0644 etc/systemd/system/usbcan-capture.service $(DESTDIR)/lib/systemd/system/usbcan-capture.service
+	install -D -m 0644 etc/default/usbcan-capture $(DESTDIR)/etc/default/usbcan-capture
 	install -D -m 0644 docs/bms-gpio.md $(DESTDIR)/usr/share/doc/robopi-addon/bms-gpio.md
+	install -D -m 0644 docs/usbcan-dump.md $(DESTDIR)/usr/share/doc/robopi-addon/usbcan-dump.md
 	install -D -m 0644 etc/udev/rules.d/70-robopi-usb-wifi-name.rules $(DESTDIR)/etc/udev/rules.d/70-robopi-usb-wifi-name.rules
 	install -D -m 0644 etc/udev/rules.d/90-robopi-usb-wifi-select.rules $(DESTDIR)/etc/udev/rules.d/90-robopi-usb-wifi-select.rules
 	install -D -m 0644 etc/systemd/system/robopi-wifi-autoselect.service $(DESTDIR)/lib/systemd/system/robopi-wifi-autoselect.service
@@ -68,6 +74,8 @@ install: all check-prebuilt-module check-prebuilt-wifi
 	ln -sf /opt/roboparty/bin/robopi-ws2812 $(DESTDIR)/usr/bin/robopi-ws2812
 	ln -sf /opt/roboparty/bin/robopi-sig-key $(DESTDIR)/usr/bin/robopi-sig-key
 	ln -sf /opt/roboparty/bin/robopi-hw-test $(DESTDIR)/usr/bin/robopi-hw-test
+	ln -sf /opt/roboparty/bin/analyze-ethercan-pcap $(DESTDIR)/usr/bin/analyze-ethercan-pcap
+	ln -sf /opt/roboparty/bin/usbcan-debug-snapshot $(DESTDIR)/usr/bin/usbcan-debug-snapshot
 	install -D -m 0755 scripts/robopi-ethernet-mac.sh \
 		$(DESTDIR)/opt/roboparty/bin/robopi-ethernet-mac
 	install -D -m 0755 scripts/robopi-fan.sh \
