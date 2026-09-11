@@ -43,6 +43,8 @@ check-prebuilt-wifi:
 # Stage the complete filesystem tree under DESTDIR. During Debian builds,
 # DESTDIR is debian/robopi-addon rather than the host system root.
 install: all check-prebuilt-module check-prebuilt-wifi
+	install -D -m 0755 scripts/robopi-ethernet-static.sh $(DESTDIR)/opt/roboparty/bin/robopi-ethernet-static
+	install -D -m 0644 etc/systemd/system/robopi-ethernet-static.service $(DESTDIR)/lib/systemd/system/robopi-ethernet-static.service
 	# BMS GPIO daemon and opt-in USB-CAN capture/analysis tools.
 	install -D -m 0755 scripts/robopi-bms-gpio.py $(DESTDIR)/opt/roboparty/bin/robopi-bms-gpio
 	install -D -m 0755 scripts/analyze_ethercan_pcap.py $(DESTDIR)/opt/roboparty/bin/analyze-ethercan-pcap
