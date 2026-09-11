@@ -1,3 +1,14 @@
+robopi-addon (1.6.31-1) stable; urgency=medium
+
+  * Add robopi-ethernet-static script and service: pin Wired connection 1 to
+    192.168.13.1/24 at boot, with no default route and no DNS. Without carrier
+    the address is only saved; the connection activates once the cable is
+    plugged in.
+  * Enable the service during postinst only; installation does not bring the
+    connection up and does not change Wi-Fi.
+
+ -- changchuanyong <1984715306@qq.com>  Fri, 11 Sep 2026 12:40:00 +0800
+
 robopi-addon (1.6.30-1) stable; urgency=medium
 
   * Default onboard Wi-Fi (wlan0) to unmanaged when no selection exists.
