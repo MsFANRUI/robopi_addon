@@ -35,6 +35,43 @@ separate `roboparty-analyze` package.
 | Export session ZIP with SHA-256 | `robopi-sixd-export /home/robo/robopi-logs/session` |
 | List failed services | `systemctl --failed` |
 
+## STM32F103 PMIC firmware candidates and OTA
+
+The current pin mapping, feature inventory, and verification status are in the
+[PMIC pinout and function list](docs/pmic-pinout-functions.md) (Chinese).
+
+The package installs separate left/right bootloader and application candidates
+with SHA-256 manifests at `/opt/roboparty/share/pmic/candidate/{left,right}/`.
+They are `0.1.4-left` and `0.1.2-right` engineering candidates from
+`hex/roboparty_pmic`, not production-qualified releases. Installing this
+package never flashes the PMIC.
+
+Use `robopi-pmic-ota inspect --port /dev/ttyUSB0` for read-only UID and
+firmware-version queries on the PMIC USART3 port (115200 8N1). The left layout
+has no external SPI Flash and rejects serial OTA. Program its matching
+`boot.bin` at `0x08000000` and `ChargeBAT.bin` at `0x08001000` with SWD.
+In `0.1.4-left`, PB4 is unused and the BMS driver/thread and USART1 are not
+built or initialized. With no validated battery state or end-of-charge input,
+the left layout keeps EN and ICTRL off, including after saved configuration or
+host `CHG_EN`/`ICTRL` writes. Legacy `BAT_INST` returns 0 and `BAT_SOC`/
+`BAT_SOH` return `BMS_DISABLED;`. The right layout is unchanged. The new left
+image has not been verified on hardware.
+
+The right-layout trial tool follows `OTA_BEGIN`, sequential `OTA_DATA` with
+offset ACKs, and `OTA_END`. It checks the image hashes, flash bounds, vectors,
+connected board layout, chip UID, and post-reboot version. Run it manually:
+
+```bash
+robopi-pmic-ota trial-ota --port /dev/ttyUSB0 \
+  --bundle /opt/roboparty/share/pmic/candidate/right/manifest.json \
+  --confirm-uid <24-character chip UID from inspect>
+```
+
+The existing protocol cannot read back the programmed application hash.
+Right-layout OTA still needs hardware fault and power-loss testing, while
+battery charging and output polarity remain unqualified. Do not use these
+candidates for unattended production updates.
+
 ## Default service policy
 
 The package maintainer scripts apply the following default policy:

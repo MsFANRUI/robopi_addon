@@ -30,6 +30,49 @@
 | 导出七维日志 ZIP 并生成 SHA-256 | `robopi-sixd-export /home/robo/robopi-logs/session` |
 | 查看失败服务 | `systemctl --failed` |
 
+## STM32F103 PMIC 固件候选与 OTA
+
+当前左右板的逐脚引脚定义、功能状态和待验证项见
+[PMIC Pinout 与功能清单](docs/pmic-pinout-functions.md)。安装包内位于
+`/usr/share/doc/robopi-addon/pmic-pinout-functions.md`。
+
+本包包含左右板型各自的 bootloader、应用镜像和 SHA-256 清单，安装在
+`/opt/roboparty/share/pmic/candidate/{left,right}/`。这些是
+`hex/roboparty_pmic` 的 `0.1.4-left` / `0.1.2-right` 工程候选版本，
+**未完成量产放行**；安装本包不会自动烧录 PMIC。
+
+先确认 PMIC 的 USART3 串口设备（115200 8N1），再只读查询：
+
+```bash
+robopi-pmic-ota inspect --port /dev/ttyUSB0
+```
+
+左板没有外置 SPI Flash，固件会对 `OTA_*` 返回 `OTA_ERR;`，只能使用
+CMSIS-DAP/SWD 烧录对应的 `left/boot.bin` 和 `left/ChargeBAT.bin`，
+地址分别为 `0x08000000` 和 `0x08001000`。不要把右板镜像烧到左板。
+`0.1.4-left` 不使用 PB4，也不编译 BMS 通信或初始化 USART1（PA9/PA10）。
+左板当前没有可验证的电池状态/充满依据，因此 `EN` 与 `ICTRL` 保持关闭；
+保存值和主机 `CHG_EN`/`ICTRL` 写入不能打开充电。旧协议查询
+`BAT_INST` 返回 0，`BAT_SOC`/`BAT_SOH` 返回 `BMS_DISABLED;`。
+右板 BMS 行为不变。新版左板尚未实板验证。
+
+右板使用 `OTA_BEGIN:<size>,<crc32>;`、`OTA_DATA:<offset>,<hex>;`、
+`OTA_END:1;`，固件分别回 `OTA_READY;`、`OTA_ACK:<next-offset>;`、
+`OTA_DONE;`。工具校验镜像清单、Flash 分区与向量，查询当前 UID 和
+`FW_VER`，要求目标版本不同，然后逐块确认 ACK；复位后核对 UID 与版本。
+只有确认串口确实连接右板且现场允许试验升级时，才手动运行：
+
+```bash
+robopi-pmic-ota trial-ota --port /dev/ttyUSB0 \
+  --bundle /opt/roboparty/share/pmic/candidate/right/manifest.json \
+  --confirm-uid <SN_GET 返回的 24 位芯片 UID>
+```
+
+`OTA_DONE` 仅表示固件接受了传输；当前协议不能回读应用 Flash 的哈希。
+右板 OTA 尚无断电、写入失败和实板回归记录；上游 bootloader 仍需
+完善边界与写入错误处理。带电池充电闭环、输出极性和多板测试也未完成。
+这些验证完成前，不要用于生产线自动升级或标注为量产固件。
+
 ## 默认服务行为
 
 安装脚本以当前包内的 systemd 配置为准。默认状态如下：

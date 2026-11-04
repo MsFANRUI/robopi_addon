@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "board": "stm32f103_pmic",
+  "layout": "left",
+  "version": "0.1.4-left",
+  "release_status": "engineering-candidate",
+  "ota_supported": false,
+  "images": {
+    "boot": {
+      "file": "boot.bin",
+      "load_address": "0x08000000",
+      "sha256": "1087d24305d3364376d8bf3f3c455154f514bea1e17a718baa1cdc32d9e99ed5"
+    },
+    "app": {
+      "file": "ChargeBAT.bin",
+      "load_address": "0x08001000",
+      "sha256": "9d8354091d111549d6f6ac054b0c52d229175af73bee12f572207f2cfb4a9224"
+    }
+  }
+}

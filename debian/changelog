@@ -1,3 +1,25 @@
+robopi-addon (1.8.12-1) stable; urgency=medium
+
+  * Update the left PMIC candidate to 0.1.4-left without BMS/USART1 support.
+  * Keep charging disabled until a validated battery protection design exists.
+
+ -- wentywenty <2321901849@qq.com>  Wed, 04 Nov 2026 00:00:00 +0800
+
+robopi-addon (1.8.11-1) stable; urgency=medium
+
+  * Update the left PMIC candidate to 0.1.3-left: PB4 unused, BMS readiness
+    controls charging; refresh the pinout documentation and image manifest.
+
+ -- wentywenty <2321901849@qq.com>  Wed, 04 Nov 2026 00:00:00 +0800
+
+robopi-addon (1.8.10-1) stable; urgency=medium
+
+  * Bundle layout-specific STM32F103 PMIC engineering-candidate images.
+  * Add opt-in right-layout serial OTA tool with UID and image checks.
+  * Document the left/right PMIC pinout and implementation status.
+
+ -- wentywenty <2321901849@qq.com>  Wed, 04 Nov 2026 00:00:00 +0800
+
 robopi-addon (1.8.9-1) stable; urgency=medium
 
   * Depend on robopi-firmware for the MediaTek WiFi and Bluetooth firmware.
