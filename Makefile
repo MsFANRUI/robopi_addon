@@ -69,6 +69,10 @@ install: all
 		install -D -m 0644 firmware/pmic/candidate/stm32f103c8/$$file \
 			$(DESTDIR)/opt/roboparty/share/pmic/candidate/stm32f103c8/$$file; \
 	done
+	for file in manifest.json boot.bin ChargeBAT_GD32.bin; do \
+		install -D -m 0644 firmware/pmic/candidate/gd32f503/$$file \
+			$(DESTDIR)/opt/roboparty/share/pmic/candidate/gd32f503/$$file; \
+	done
 	ln -sf /opt/roboparty/bin/robopi-ethernet-mac $(DESTDIR)/usr/bin/robopi-ethernet-mac
 	ln -sf /opt/roboparty/bin/robopi-fan $(DESTDIR)/usr/bin/robopi-fan
 	ln -sf /opt/roboparty/bin/robopi-pmic-ota $(DESTDIR)/usr/bin/robopi-pmic-ota

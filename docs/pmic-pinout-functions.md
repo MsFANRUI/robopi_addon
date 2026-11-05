@@ -1,11 +1,11 @@
-# STM32F103C8 PMIC Pinout 与功能清单
+# PMIC 双目标 Pinout 与功能清单
 
-更新日期：2026-11-05。当前实物只有一颗 STM32F103C8；GD32F503 是源码仓库中的
-另一 MCU 目标。安装包只提供当前 STM32F103C8 的一套固件，来源为
-[`roboparty_pmic` 提交 edb21da](https://github.com/Roboparty/roboparty_pmic/commit/edb21da)
-的实板验证构建。bootloader 与 v0.1.7 Release 一致；`-left` 后缀不表示第二颗 MCU。
+更新日期：2026-11-05。当前实物只有一颗 STM32F103C8；GD32F503VET6 是按软件先定义
+引脚的参考目标，尚无对应实板。安装包提供来自
+[`roboparty_pmic v0.1.9`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.9)
+的两套工程候选固件；`-left` 后缀不表示第二颗 MCU。
 
-## 固件
+## STM32F103C8 固件
 
 | 项目 | 当前硬件 |
 | --- | --- |
@@ -69,3 +69,29 @@ PA11、PA12、PA15、PB0–PB2、PB5–PB7、PB12–PB15 等未在当前固件�
 源码位置：`boards/stm32f103_pmic/{pinout.h,board.c,drivers/adc.c,drivers/pwm.c}`、
 `common/app/src/{app_charge.c,app_config.c,app_host.c}` 和
 `boards/stm32f103_pmic/bootloader/boot_main.c`。
+
+## GD32F503VET6 参考固件
+
+| 项目 | 软件约定 |
+| --- | --- |
+| MCU | GD32F503VET6，512KB Flash、64KB SRAM，8MHz 外部晶振 |
+| 应用版本 | `0.1.0-gd32`，未做 GD32 实板验证 |
+| 固件位置 | `firmware/pmic/candidate/gd32f503/` |
+| Bootloader / 应用 | `boot.bin` 位于 `0x08000000`；`ChargeBAT_GD32.bin` 位于 `0x08008000` |
+| 分区 | boot 32KB、app 224KB、staging 224KB、config 32KB |
+| 充电输出 | 默认镜像强制关闭 EN；需实板核对后重新构建 |
+| 升级 | 固件包含内部 Flash OTA 路径；addon 命令尚不执行 OTA |
+
+| 引脚 | 参考用途 | 外设 / 行为 |
+| --- | --- | --- |
+| PA0 / PA1 / PA2 | 充电电流 / 电池电压 / 输入电压采样 | ADC0 CH0/CH1/CH2 |
+| PA3 | 充电电流控制 | TIMER16 CH1 PWM |
+| PA4 / PA5 | 充电红灯 / 绿灯 | GPIO，高电平亮 |
+| PA6 / PA7 | 电池绿灯 / 红灯 | GPIO，高电平亮 |
+| PA8 | 风扇 | TIMER0 CH0 PWM |
+| PA9 / PA10 | 主机 TX / RX | USART0，115200 8N1，RT-Thread 设备名 `uart3` |
+| PB3 | 充电 EN | GPIO，高电平使能；默认镜像始终关闭 |
+| PB8 / PB9 | CH224/TMP100 SCL / SDA | 开漏软件 I2C |
+
+GD32 镜像可编译、可通过 manifest 校验，尚不能据此判断引脚、ADC 分压、
+外部充电电路、OTA 和带载行为正确。安装 addon 不会烧录或启动 PMIC 守护进程。

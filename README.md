@@ -35,18 +35,16 @@ separate `roboparty-analyze` package.
 | Export session ZIP with SHA-256 | `robopi-sixd-export /home/robo/robopi-logs/session` |
 | List failed services | `systemctl --failed` |
 
-## STM32F103 PMIC firmware candidates and OTA
+## PMIC firmware candidates
 
 The current pin mapping, feature inventory, and verification status are in the
 [PMIC pinout and function list](docs/pmic-pinout-functions.md) (Chinese).
 
-The package installs one STM32F103C8 bootloader and application candidate
-with a SHA-256 manifest at `/opt/roboparty/share/pmic/candidate/stm32f103c8/`.
-The bootloader matches the current-hardware archive in the
-[PMIC v0.1.7 release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7).
-The corrected `0.1.8-left` application is the hardware-tested build from
-[PMIC commit edb21da](https://github.com/Roboparty/roboparty_pmic/commit/edb21da),
-not a release download. Its hash is checked by the package manifest.
+The package installs STM32F103C8 and GD32F503VET6 bootloader/application
+bundles from the corrected
+[PMIC v0.1.9 engineering release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.9),
+each with a SHA-256 manifest under `/opt/roboparty/share/pmic/candidate/`.
+The earlier v0.1.8 GD32 asset had the wrong version string and is superseded.
 The `-left` firmware version suffix is a historical build name, not a second MCU.
 These are not production-qualified firmware. Installing this
 package never flashes the PMIC.
@@ -72,15 +70,27 @@ termination have not been measured. SWD tests confirmed the physical colors
 of PA4-PA7; the 20 V open-circuit case lit only the charge red LED.
 PA1 voltage windows and the loaded green state remain untested on hardware.
 
-Validate the installed SWD image pair without opening a serial device:
+Validate either installed image pair without opening a serial device:
 
 ```bash
 robopi-pmic-ota verify-bundle \
   --bundle /opt/roboparty/share/pmic/candidate/stm32f103c8/manifest.json
+robopi-pmic-ota verify-bundle \
+  --bundle /opt/roboparty/share/pmic/candidate/gd32f503/manifest.json
 ```
 
 The current STM32F103C8 hardware has no serial OTA storage. Use SWD for firmware
 updates. Battery charging and output polarity remain unqualified.
+
+The GD32F503VET6 reference target uses boot at `0x08000000`, application at
+`0x08008000`, and reports `FW_VER:0.1.0-gd32;` plus its 96-bit chip UID on
+USART0 (PA9/PA10, 115200 8N1). Its firmware has an internal-Flash OTA path,
+but this addon tool does not perform OTA. There is no verified matching GD32
+board: the packaged image forces charging EN off, and GD32 flashing and OTA
+have not been tested on hardware.
+
+There is no PMIC systemd service. `robopi-pmic-ota inspect` and `verify-bundle`
+are operator commands, not background monitoring or automatic updates.
 
 ## Default service policy
 
@@ -96,6 +106,7 @@ The package maintainer scripts apply the following default policy:
 | `robopi-ethernet-mac.service` | Disabled | Enable manually only after checking the interface name and network impact |
 | `robopi-hw-test.service` | Disabled | Manufacturing/diagnostic tool; conflicts with the BMS GPIO service |
 | `robopi-sig-key.service` | Disabled | SIG/key diagnostic tool; conflicts with the BMS GPIO service |
+| PMIC service | Not installed | PMIC inspection and bundle validation are manual commands |
 
 `usbcan-capture.service` and `hpm-log-capture.service` belong to
 `roboparty-analyze`; this package does not manage their state.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect the STM32F103C8 PMIC or validate its SWD firmware bundle."""
+"""Inspect a PMIC or validate a chip-specific firmware bundle."""
 
 import argparse
 import hashlib
@@ -11,27 +11,52 @@ import time
 from pathlib import Path
 
 
-APP_START = 0x08001000
-APP_END = 0x0800FC00
+TARGETS = {
+    "stm32f103c8": {
+        "board": "stm32f103_pmic",
+        "app_file": "ChargeBAT.bin",
+        "app_start": 0x08001000,
+        "app_end": 0x0800FC00,
+        "ram_end": 0x20005000,
+        "ota_supported": False,
+    },
+    "gd32f503vet6": {
+        "board": "gd32f503_pmic",
+        "app_file": "ChargeBAT_GD32.bin",
+        "app_start": 0x08008000,
+        "app_end": 0x08040000,
+        "ram_end": 0x20010000,
+        "ota_supported": True,
+    },
+}
 UID_RE = re.compile(r"^[0-9A-F]{24}$")
 
 
 def load_bundle(path):
     manifest_path = Path(path).resolve()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if (manifest.get("schema") != 2 or
-            manifest.get("board") != "stm32f103_pmic" or
-            manifest.get("target") != "stm32f103c8" or
-            manifest.get("ota_supported") is not False):
-        raise ValueError("unsupported STM32F103C8 PMIC bundle")
+    target_name = manifest.get("target")
+    target = TARGETS.get(target_name) if isinstance(target_name, str) else None
+    if (manifest.get("schema") != 2 or target is None or
+            manifest.get("board") != target["board"] or
+            manifest.get("ota_supported") is not target["ota_supported"]):
+        raise ValueError("unsupported PMIC bundle")
+    if (manifest.get("release_status") != "engineering-candidate" or
+            not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+",
+                             manifest.get("source_release", "")) or
+            not re.fullmatch(r"[0-9a-f]{40}",
+                             manifest.get("source_commit", ""))):
+        raise ValueError("invalid PMIC release metadata")
+    if target_name == "gd32f503vet6" and manifest.get("charging_enabled") is not False:
+        raise ValueError("unverified GD32 charging must be disabled")
     version = manifest.get("version", "")
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-[a-z0-9-]+", version):
         raise ValueError("invalid firmware version")
 
     images = {}
-    for name, address in (("boot", 0x08000000), ("app", APP_START)):
+    for name, address in (("boot", 0x08000000), ("app", target["app_start"])):
         item = manifest["images"][name]
-        filename = "boot.bin" if name == "boot" else "ChargeBAT.bin"
+        filename = "boot.bin" if name == "boot" else target["app_file"]
         if item["file"] != filename or int(item["load_address"], 16) != address:
             raise ValueError(f"invalid {name} image metadata")
         data = (manifest_path.parent / filename).read_bytes()
@@ -40,17 +65,23 @@ def load_bundle(path):
         images[name] = data
 
     app = images["app"]
-    if not 8 <= len(app) <= APP_END - APP_START:
+    if not 8 <= len(app) <= target["app_end"] - target["app_start"]:
         raise ValueError("application is outside the PMIC flash partition")
     stack, reset = struct.unpack_from("<II", app)
-    if not 0x20000000 < stack <= 0x20005000:
+    if not 0x20000000 < stack <= target["ram_end"] or stack & 7:
         raise ValueError("invalid initial stack pointer")
-    if not (reset & 1 and APP_START <= (reset & ~1) < APP_START + len(app)):
+    if not (reset & 1 and
+            target["app_start"] <= (reset & ~1) < target["app_start"] + len(app)):
         raise ValueError("invalid application reset vector")
     if version.encode("ascii") not in app:
         raise ValueError("manifest version is absent from application image")
-    if not 8 <= len(images["boot"]) <= APP_START - 0x08000000:
+    if not 8 <= len(images["boot"]) <= target["app_start"] - 0x08000000:
         raise ValueError("bootloader is outside its flash partition")
+    boot_stack, boot_reset = struct.unpack_from("<II", images["boot"])
+    if not (0x20000000 < boot_stack <= target["ram_end"] and
+            boot_stack & 7 == 0 and boot_reset & 1 and
+            0x08000000 <= (boot_reset & ~1) < 0x08000000 + len(images["boot"])):
+        raise ValueError("invalid bootloader vectors")
     return manifest, images
 
 
@@ -95,7 +126,7 @@ def identity(port, timeout):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("inspect", "verify-bundle"))
-    parser.add_argument("--port", help="PMIC USART3 serial device for inspect")
+    parser.add_argument("--port", help="PMIC host UART serial device for inspect")
     parser.add_argument("--bundle", help="manifest.json path for verify-bundle")
     parser.add_argument("--timeout", type=float, default=3)
     args = parser.parse_args(argv)

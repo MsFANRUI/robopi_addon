@@ -30,18 +30,18 @@
 | 导出七维日志 ZIP 并生成 SHA-256 | `robopi-sixd-export /home/robo/robopi-logs/session` |
 | 查看失败服务 | `systemctl --failed` |
 
-## STM32F103 PMIC 固件候选与 OTA
+## PMIC 双目标固件候选
 
 当前 STM32F103C8 的逐脚引脚定义、功能状态和待验证项见
 [PMIC Pinout 与功能清单](docs/pmic-pinout-functions.md)。安装包内位于
 `/usr/share/doc/robopi-addon/pmic-pinout-functions.md`。
 
-本包只包含当前 STM32F103C8 的 bootloader、应用镜像和 SHA-256 清单，安装在
-`/opt/roboparty/share/pmic/candidate/stm32f103c8/`。bootloader 与
-[`roboparty_pmic v0.1.7 Release`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7)
-一致；修正后的 `0.1.8-left` 应用镜像来自已在实板烧录、回读验证的
-[`edb21da` 提交](https://github.com/Roboparty/roboparty_pmic/commit/edb21da) 本地构建，
-尚非 Release 下载件。`-left` 是历史构建后缀，不代表第二颗 MCU。
+本包从修正后的
+[`roboparty_pmic v0.1.9 工程预发布版`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.9)
+收录 STM32F103C8 与 GD32F503VET6 两套 bootloader、应用镜像和 SHA-256 清单，
+分别安装在 `/opt/roboparty/share/pmic/candidate/stm32f103c8/` 和
+`/opt/roboparty/share/pmic/candidate/gd32f503/`。v0.1.8 的 GD32 镜像版本串有误，
+已弃用。`-left` 是历史构建后缀，不代表第二颗 MCU。
 **未完成量产放行**；安装本包不会自动烧录 PMIC。
 
 先确认 PMIC 的 USART3 串口设备（115200 8N1），再只读查询：
@@ -72,10 +72,20 @@ SWD 逐脚测试确认 PA4 红、PA5 绿、PA6 电池绿、PA7 电池红；20V �
 ```bash
 robopi-pmic-ota verify-bundle \
   --bundle /opt/roboparty/share/pmic/candidate/stm32f103c8/manifest.json
+robopi-pmic-ota verify-bundle \
+  --bundle /opt/roboparty/share/pmic/candidate/gd32f503/manifest.json
 ```
 
 当前 STM32F103C8 硬件不支持串口 OTA，升级使用 SWD。带电池充电闭环、
 输出极性和多板测试尚未完成，不能标注为量产固件。
+
+GD32F503VET6 参考目标的 boot 地址为 `0x08000000`、应用地址为 `0x08008000`，
+USART0（PA9/PA10，115200 8N1）可查询 `FW_VER:0.1.0-gd32;` 和 96 位芯片 UID。
+固件包含内部 Flash OTA 路径，但 addon 的命令目前不执行 OTA；GD32 尚无匹配实板，
+包内镜像强制关闭充电 EN，也没有完成烧录和 OTA 实测。
+
+**没有 PMIC 专用 systemd 服务。** `robopi-pmic-ota inspect` 与 `verify-bundle`
+是按需运行的命令，安装包不会后台监控或自动刷机。
 
 ## 默认服务行为
 
@@ -91,6 +101,7 @@ robopi-pmic-ota verify-bundle \
 | `robopi-ethernet-mac.service` | 禁用 | 仅在确认网卡名和网络影响后手动启用 |
 | `robopi-hw-test.service` | 禁用 | 产测/诊断工具，与 BMS GPIO 服务互斥 |
 | `robopi-sig-key.service` | 禁用 | SIG/按键诊断工具，与 BMS GPIO 服务互斥 |
+| PMIC 服务 | 未安装 | PMIC 查询与固件包校验需手动执行 |
 
 `usbcan-capture.service` 和 `hpm-log-capture.service` 属于 `roboparty-analyze`，
 本包不管理它们的启停状态。

@@ -4,6 +4,8 @@
   "target": "stm32f103c8",
   "version": "0.1.8-left",
   "release_status": "engineering-candidate",
+  "source_release": "v0.1.9",
+  "source_commit": "c846bbc60554a187b44db40ff056a0f532c42840",
   "ota_supported": false,
   "images": {
     "boot": {
@@ -14,7 +16,7 @@
     "app": {
       "file": "ChargeBAT.bin",
       "load_address": "0x08001000",
-      "sha256": "a3d6131448d67cc81f71fe9e5819ed3885ee58ea284fc567f558157b6ab8236f"
+      "sha256": "cf923e1d3a24d582316c55b4725fffdbdf074003604d982cc5fa8baaafbe36c7"
     }
   }
 }
