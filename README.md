@@ -40,14 +40,16 @@ separate `roboparty-analyze` package.
 The current pin mapping, feature inventory, and verification status are in the
 [PMIC pinout and function list](docs/pmic-pinout-functions.md) (Chinese).
 
-The package installs separate left/right bootloader and application candidates
-with SHA-256 manifests at `/opt/roboparty/share/pmic/candidate/{left,right}/`.
-They are `0.1.7-left` and `0.1.2-right` engineering candidates from
-the [PMIC v0.1.7 release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7), not production-qualified firmware. Installing this
+The package installs one STM32F103C8 bootloader and application candidate
+with a SHA-256 manifest at `/opt/roboparty/share/pmic/candidate/stm32f103c8/`.
+The images come from the current-hardware archive in the
+[PMIC v0.1.7 release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7).
+The `-left` firmware version suffix is a historical build name, not a second MCU.
+These are not production-qualified firmware. Installing this
 package never flashes the PMIC.
 
 Use `robopi-pmic-ota inspect --port /dev/ttyUSB0` for read-only UID and
-firmware-version queries on the PMIC USART3 port (115200 8N1). The left layout
+firmware-version queries on the PMIC USART3 port (115200 8N1). This hardware
 has no external SPI Flash and rejects serial OTA. Program its matching
 `boot.bin` at `0x08000000` and `ChargeBAT.bin` at `0x08001000` with SWD.
 In `0.1.7-left`, PB4 is unused and the BMS driver/thread and USART1 are not
@@ -56,7 +58,7 @@ ICTRL after three valid ADC samples when the input is 16-32 V, CH224 reports
 adapter current, and no fault is latched. Independent cutoff protection in
 the battery pack is required. Saved settings and host `CHG_EN`/`ICTRL` writes
 cannot bypass the automatic conditions. Legacy `BAT_INST` returns 0 and
-`BAT_SOC`/`BAT_SOH` return `BMS_DISABLED;`. The right layout is unchanged.
+`BAT_SOC`/`BAT_SOH` return `BMS_DISABLED;`.
 The same charge logic in `0.1.5-left` was tested: EN stayed off at 5 V and PB3
 went high at 20 V, with no battery pack attached. The packaged `0.1.7-left`
 image has not been flashed. PA4 is green while charging below 54 V output;
@@ -65,20 +67,15 @@ and PA7 for 1.21-<1.39 V; host R/G writes cannot override these outputs.
 The 54 V lamp threshold does not stop charging. External voltage/current and loaded charge
 termination have not been measured.
 
-The right-layout trial tool follows `OTA_BEGIN`, sequential `OTA_DATA` with
-offset ACKs, and `OTA_END`. It checks the image hashes, flash bounds, vectors,
-connected board layout, chip UID, and post-reboot version. Run it manually:
+Validate the installed SWD image pair without opening a serial device:
 
 ```bash
-robopi-pmic-ota trial-ota --port /dev/ttyUSB0 \
-  --bundle /opt/roboparty/share/pmic/candidate/right/manifest.json \
-  --confirm-uid <24-character chip UID from inspect>
+robopi-pmic-ota verify-bundle \
+  --bundle /opt/roboparty/share/pmic/candidate/stm32f103c8/manifest.json
 ```
 
-The existing protocol cannot read back the programmed application hash.
-Right-layout OTA still needs hardware fault and power-loss testing, while
-battery charging and output polarity remain unqualified. Do not use these
-candidates for unattended production updates.
+The current STM32F103C8 hardware has no serial OTA storage. Use SWD for firmware
+updates. Battery charging and output polarity remain unqualified.
 
 ## Default service policy
 

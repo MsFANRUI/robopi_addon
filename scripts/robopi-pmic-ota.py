@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect a PMIC and explicitly trial the right-layout serial OTA protocol."""
+"""Inspect the STM32F103C8 PMIC or validate its SWD firmware bundle."""
 
 import argparse
 import hashlib
@@ -8,7 +8,6 @@ import re
 import struct
 import sys
 import time
-import zlib
 from pathlib import Path
 
 
@@ -20,26 +19,23 @@ UID_RE = re.compile(r"^[0-9A-F]{24}$")
 def load_bundle(path):
     manifest_path = Path(path).resolve()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema") != 1 or manifest.get("board") != "stm32f103_pmic":
-        raise ValueError("unsupported PMIC bundle")
-    if manifest.get("layout") not in ("left", "right"):
-        raise ValueError("missing or invalid board layout")
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-" + manifest["layout"],
-                        manifest.get("version", "")):
-        raise ValueError("bundle version does not match board layout")
+    if (manifest.get("schema") != 2 or
+            manifest.get("board") != "stm32f103_pmic" or
+            manifest.get("target") != "stm32f103c8" or
+            manifest.get("ota_supported") is not False):
+        raise ValueError("unsupported STM32F103C8 PMIC bundle")
+    version = manifest.get("version", "")
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-[a-z0-9-]+", version):
+        raise ValueError("invalid firmware version")
 
     images = {}
     for name, address in (("boot", 0x08000000), ("app", APP_START)):
         item = manifest["images"][name]
-        filename = item["file"]
-        if filename != name + ".bin" and not (name == "app" and filename == "ChargeBAT.bin"):
-            raise ValueError("unexpected image filename")
-        if int(item["load_address"], 16) != address:
-            raise ValueError("unexpected image load address")
-        image = manifest_path.parent / filename
-        data = image.read_bytes()
-        digest = hashlib.sha256(data).hexdigest()
-        if digest != item["sha256"]:
+        filename = "boot.bin" if name == "boot" else "ChargeBAT.bin"
+        if item["file"] != filename or int(item["load_address"], 16) != address:
+            raise ValueError(f"invalid {name} image metadata")
+        data = (manifest_path.parent / filename).read_bytes()
+        if hashlib.sha256(data).hexdigest() != item["sha256"]:
             raise ValueError(f"{filename}: SHA-256 mismatch")
         images[name] = data
 
@@ -51,6 +47,8 @@ def load_bundle(path):
         raise ValueError("invalid initial stack pointer")
     if not (reset & 1 and APP_START <= (reset & ~1) < APP_START + len(app)):
         raise ValueError("invalid application reset vector")
+    if version.encode("ascii") not in app:
+        raise ValueError("manifest version is absent from application image")
     if not 8 <= len(images["boot"]) <= APP_START - 0x08000000:
         raise ValueError("bootloader is outside its flash partition")
     return manifest, images
@@ -94,86 +92,39 @@ def identity(port, timeout):
     return sn, version
 
 
-def ota_command(port, command, expected, timeout):
-    port.reset_input_buffer()
-    port.write(command.encode("ascii"))
-    port.flush()
-    reply = read_field(port, "OTA_", timeout)
-    if reply != expected:
-        raise RuntimeError(f"expected {expected!r}, received {reply!r}")
-
-
-def transfer(port, app, timeout):
-    crc = zlib.crc32(app) & 0xFFFFFFFF
-    try:
-        ota_command(port, f"OTA_BEGIN:{len(app)},{crc};", "OTA_READY;", timeout)
-        for offset in range(0, len(app), 64):
-            block = app[offset:offset + 64]
-            ota_command(port, f"OTA_DATA:{offset},{block.hex()};",
-                        f"OTA_ACK:{offset + len(block)};", timeout)
-        ota_command(port, "OTA_END:1;", "OTA_DONE;", timeout)
-    except (RuntimeError, TimeoutError):
-        port.write(b"OTA_ABORT:1;")
-        port.flush()
-        raise
-
-
-def verify_reboot(port, uid, version, wait):
-    deadline = time.monotonic() + wait
-    while time.monotonic() < deadline:
-        time.sleep(1)
-        try:
-            current_uid, current_version = identity(port, 1)
-        except (TimeoutError, ValueError):
-            continue
-        if current_uid != uid:
-            raise RuntimeError("device UID changed after OTA")
-        if current_version == version:
-            return
-    raise TimeoutError("PMIC did not return with the expected version")
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("inspect", "trial-ota"))
-    parser.add_argument("--port", required=True, help="PMIC USART3 serial device")
-    parser.add_argument("--bundle", help="path to the board-layout manifest.json")
-    parser.add_argument("--confirm-uid", help="24-digit UID required for trial-ota")
+    parser.add_argument("command", choices=("inspect", "verify-bundle"))
+    parser.add_argument("--port", help="PMIC USART3 serial device for inspect")
+    parser.add_argument("--bundle", help="manifest.json path for verify-bundle")
     parser.add_argument("--timeout", type=float, default=3)
-    parser.add_argument("--reboot-wait", type=float, default=30)
     args = parser.parse_args(argv)
-    if args.timeout <= 0 or args.reboot_wait <= 0:
-        parser.error("timeouts must be positive")
-    if args.command == "trial-ota" and (not args.bundle or not args.confirm_uid):
-        parser.error("trial-ota requires --bundle and --confirm-uid")
+    if args.timeout <= 0:
+        parser.error("timeout must be positive")
+    if args.command == "verify-bundle":
+        if not args.bundle:
+            parser.error("verify-bundle requires --bundle")
+        try:
+            manifest, images = load_bundle(args.bundle)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            print(f"PMIC bundle invalid: {exc}", file=sys.stderr)
+            return 1
+        print(f"target={manifest['target']} version={manifest['version']} "
+              f"boot={len(images['boot'])} app={len(images['app'])}")
+        return 0
 
+    if not args.port:
+        parser.error("inspect requires --port")
     try:
         import serial
     except ImportError as exc:
         parser.error(f"python3-serial is required: {exc}")
-
     try:
-        bundle = load_bundle(args.bundle) if args.bundle else None
-        if args.command == "trial-ota" and bundle[0]["layout"] != "right":
-            raise ValueError("left-layout PMIC has no external Flash and rejects serial OTA")
         with serial.Serial(args.port, 115200, timeout=0.05, write_timeout=args.timeout) as port:
-            uid, current = identity(port, args.timeout)
-            print(f"UID={uid} FW_VER={current}")
-            if args.command == "inspect":
-                return 0
-            manifest, images = bundle
-            if uid != args.confirm_uid.upper():
-                raise ValueError("UID confirmation does not match connected PMIC")
-            if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-right", current):
-                raise ValueError("connected PMIC is not a right-layout firmware")
-            if current == manifest["version"]:
-                raise ValueError("target version equals current version; post-OTA version check would be inconclusive")
-            print(f"trial OTA: {len(images['app'])} bytes, target {manifest['version']}")
-            transfer(port, images["app"], args.timeout)
-            verify_reboot(port, uid, manifest["version"], args.reboot_wait)
-            print("PMIC rebooted with expected UID and version; flash readback is unavailable")
-    except (OSError, ValueError, RuntimeError, TimeoutError, serial.SerialException) as exc:
-        print(f"PMIC OTA failed: {exc}", file=sys.stderr)
+            uid, version = identity(port, args.timeout)
+            print(f"UID={uid} FW_VER={version}")
+    except (OSError, ValueError, TimeoutError, serial.SerialException) as exc:
+        print(f"PMIC inspect failed: {exc}", file=sys.stderr)
         return 1
     return 0
 

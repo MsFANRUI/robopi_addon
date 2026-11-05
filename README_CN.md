@@ -32,14 +32,14 @@
 
 ## STM32F103 PMIC 固件候选与 OTA
 
-当前左右板的逐脚引脚定义、功能状态和待验证项见
+当前 STM32F103C8 的逐脚引脚定义、功能状态和待验证项见
 [PMIC Pinout 与功能清单](docs/pmic-pinout-functions.md)。安装包内位于
 `/usr/share/doc/robopi-addon/pmic-pinout-functions.md`。
 
-本包包含左右板型各自的 bootloader、应用镜像和 SHA-256 清单，安装在
-`/opt/roboparty/share/pmic/candidate/{left,right}/`。这些是
+本包只包含当前 STM32F103C8 的 bootloader、应用镜像和 SHA-256 清单，安装在
+`/opt/roboparty/share/pmic/candidate/stm32f103c8/`。镜像来自
 [`roboparty_pmic v0.1.7 Release`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7)
-中的 `0.1.7-left` / `0.1.2-right` 工程候选版本，
+中的 `0.1.7-left` 工程候选版本；`-left` 是历史构建后缀，不代表第二颗 MCU。
 **未完成量产放行**；安装本包不会自动烧录 PMIC。
 
 先确认 PMIC 的 USART3 串口设备（115200 8N1），再只读查询：
@@ -48,37 +48,30 @@
 robopi-pmic-ota inspect --port /dev/ttyUSB0
 ```
 
-左板没有外置 SPI Flash，固件会对 `OTA_*` 返回 `OTA_ERR;`，只能使用
-CMSIS-DAP/SWD 烧录对应的 `left/boot.bin` 和 `left/ChargeBAT.bin`，
-地址分别为 `0x08000000` 和 `0x08001000`。不要把右板镜像烧到左板。
+当前硬件没有外置 SPI Flash，固件会对 `OTA_*` 返回 `OTA_ERR;`，使用
+CMSIS-DAP/SWD 烧录对应的 `stm32f103c8/boot.bin` 和 `stm32f103c8/ChargeBAT.bin`，
+地址分别为 `0x08000000` 和 `0x08001000`。
 `0.1.7-left` 不使用 PB4，也不编译 BMS 通信或初始化 USART1（PA9/PA10）。
-左板在 ADC 连续采样有效、输入为 16–32V、CH224 能读到适配器电流且无故障时
+固件在 ADC 连续采样有效、输入为 16–32V、CH224 能读到适配器电流且无故障时
 自动使能 PB3 `EN` 与 PA3 `ICTRL`；需要电池包自带独立充满截止保护。
 保存值和主机 `CHG_EN`/`ICTRL` 写入不能绕过自动条件。旧协议查询
 `BAT_INST` 返回 0，`BAT_SOC`/`BAT_SOH` 返回 `BMS_DISABLED;`。
-右板 BMS 行为不变。相同控制逻辑的 `0.1.5-left` 已验证 5V 输入时关闭、
+相同控制逻辑的 `0.1.5-left` 已验证 5V 输入时关闭、
 20V PD 输入时 PB3 拉高；这次测试未接电池包。包内 `0.1.7-left` 尚未烧录。
 充电且输出电压低于 54V 时 PA4 绿灯亮，达到 54V 后 PA5 红灯亮；PA1 引脚电压
 1.39–1.50V 时 PA6 拉高，1.21–<1.39V 时 PA7 拉高。54V 只切换灯，不停止充电；
 主机 R/G 写入不能覆盖自动灯态。
 外部电压/电流和实际充电截止尚未测量。
 
-右板使用 `OTA_BEGIN:<size>,<crc32>;`、`OTA_DATA:<offset>,<hex>;`、
-`OTA_END:1;`，固件分别回 `OTA_READY;`、`OTA_ACK:<next-offset>;`、
-`OTA_DONE;`。工具校验镜像清单、Flash 分区与向量，查询当前 UID 和
-`FW_VER`，要求目标版本不同，然后逐块确认 ACK；复位后核对 UID 与版本。
-只有确认串口确实连接右板且现场允许试验升级时，才手动运行：
+无需连接串口即可校验包内镜像：
 
 ```bash
-robopi-pmic-ota trial-ota --port /dev/ttyUSB0 \
-  --bundle /opt/roboparty/share/pmic/candidate/right/manifest.json \
-  --confirm-uid <SN_GET 返回的 24 位芯片 UID>
+robopi-pmic-ota verify-bundle \
+  --bundle /opt/roboparty/share/pmic/candidate/stm32f103c8/manifest.json
 ```
 
-`OTA_DONE` 仅表示固件接受了传输；当前协议不能回读应用 Flash 的哈希。
-右板 OTA 尚无断电、写入失败和实板回归记录；上游 bootloader 仍需
-完善边界与写入错误处理。带电池充电闭环、输出极性和多板测试也未完成。
-这些验证完成前，不要用于生产线自动升级或标注为量产固件。
+当前 STM32F103C8 硬件不支持串口 OTA，升级使用 SWD。带电池充电闭环、
+输出极性和多板测试尚未完成，不能标注为量产固件。
 
 ## 默认服务行为
 
