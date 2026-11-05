@@ -1,7 +1,7 @@
 # STM32F103 PMIC 当前 Pinout 与功能清单
 
 更新日期：2026-11-05。适用芯片为 STM32F103C8T6，固件源为
-[`roboparty_pmic v0.1.6`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.6)（提交 `17b9d72`）。左板与右板是两套不同原理图布局，
+[`roboparty_pmic v0.1.7`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7)（提交 `1ccf693`）。左板与右板是两套不同原理图布局，
 不可混烧。这里记录**固件实际使用的引脚**；左板网络名还参考了 2026-11-03
 提供的双图截图，尚未用完整原理图网表或 PCB 实物逐线复核。
 
@@ -9,13 +9,13 @@
 
 | 项目 | 左板 `PMIC_LEFT_LAYOUT=ON` | 右板（默认） |
 | --- | --- | --- |
-| 当前应用版本 | `0.1.6-left` | `0.1.2-right` |
+| 当前应用版本 | `0.1.7-left` | `0.1.2-right` |
 | 引导区 | `0x08000000` 至 `0x08000FFF`，直接跳应用 | 同一区域；检查 W25Q128 中的 OTA 镜像 |
 | 应用区 | 从 `0x08001000` 启动 | 从 `0x08001000` 启动；末端预留配置页 |
 | 配置页 | `0x0800FC00` | `0x0800FC00` |
 | 固件包位置 | `firmware/pmic/candidate/left/` | `firmware/pmic/candidate/right/` |
 | 串口 OTA | 不支持，返回 `OTA_ERR;` | 代码实现，尚无完整实板升级验证 |
-| 当前验证 | 同控制逻辑的 `0.1.5-left` 已烧录、回读校验；5V 关 EN、20V PD 自动开 EN 的 MCU 状态已验证；包内 `0.1.6-left` 未烧录，带载充电未测 | 构建通过；本清单不把其外设或 OTA 视为实板通过 |
+| 当前验证 | `0.1.5-left` 已烧录、回读校验；5V 关 EN、20V PD 自动开 EN 的 MCU 状态已验证；包内 `0.1.7-left` 的新增灯控未烧录，带载充电未测 | 构建通过；本清单不把其外设或 OTA 视为实板通过 |
 
 两版镜像均标为 `engineering-candidate`，不是量产放行固件。
 
@@ -38,7 +38,7 @@ COM82 只读 HIL 6/6。普通 5V Type-C 输入时 `CHG_EN:0`、`ICTRL:0`；
 方向以 MCU 为参照；带 `*` 的网络名或极性仍需实物确认。
 
 **左板 PA4、PA5、PA6、PA7 全是普通 GPIO 输出，没有 LED PWM。**
-其中 PA4/PA5 分别接 U34 的 `LED_R`/`LED_G`：U34 虽是三色灯封装，
+按本次接口定义，PA4 驱动绿灯、PA5 驱动红灯；U34 虽是三色灯封装，
 图中只接了红、绿两路，第三路未连接。PA6/PA7 是另外的 `BAT_G`/`BAT_R`
 信号。下表右板栏的 TIM3 PWM 属于另一版原理图，不适用于左板。
 
@@ -48,10 +48,10 @@ COM82 只读 HIL 6/6。普通 5V Type-C 输入时 `CHG_EN:0`、`ICTRL:0`；
 | PA1 | `U_BAT`，电池电压采样 | 同左 | ADC1 IN1，输入 |
 | PA2 | `U_IN`，输入电压采样 | 同左 | ADC1 IN2，输入 |
 | PA3 | `ICTRL`，充电电流控制 | 同左 | TIM2 CH4 PWM，输出 |
-| PA4 | `LED_R`，U34 红灯通道 | `Buzzer`，蜂鸣器 | 左：普通 GPIO 输出；右：GPIO 输出 |
-| PA5 | `LED_G`，U34 绿灯通道 | `KEY1`，按键 | 左：普通 GPIO 输出；右：GPIO 输入 |
-| PA6 | `BAT_G`，无 BMS 时软件保持关闭 | `B`，RGB 蓝通道 | 左：普通 GPIO 输出；右：TIM3 CH1 PWM |
-| PA7 | `BAT_R`，异常指示* | `R`，RGB 红通道 | 左：普通 GPIO 输出；右：TIM3 CH2 PWM |
+| PA4 | 充电绿灯：使能且电池输出电压 <54V 时拉高 | `Buzzer`，蜂鸣器 | 左：普通 GPIO 输出；右：GPIO 输出 |
+| PA5 | 充电红灯：使能且电池输出电压 ≥54V 时拉高 | `KEY1`，按键 | 左：普通 GPIO 输出；右：GPIO 输入 |
+| PA6 | `BAT_G`：PA1 ADC 电压在 1.39–1.50V 时拉高 | `B`，RGB 蓝通道 | 左：普通 GPIO 输出；右：TIM3 CH1 PWM |
+| PA7 | `BAT_R`：PA1 ADC 电压在 1.21–<1.39V 时拉高 | `R`，RGB 红通道 | 左：普通 GPIO 输出；右：TIM3 CH2 PWM |
 | PA8 | `FAN`，风扇调速 | 同左 | TIM1 CH1 PWM，输出 |
 | PA9 | 无 485/BMS 接口；固件未分配 | `USART1_TX`，BMS 串口发送 | 左：未用；右：USART1 TX |
 | PA10 | 无 485/BMS 接口；固件未分配 | `USART1_RX`，BMS 串口接收 | 左：未用；右：USART1 RX |
@@ -80,7 +80,8 @@ COM82 只读 HIL 6/6。普通 5V Type-C 输入时 `CHG_EN:0`、`ICTRL:0`；
 PA11、PA12、PA15 及未列出的封装脚在当前固件中未分配；电源和地脚须按原理图
 连接，不能按“未用 GPIO”处理。左板没有 OLED、蜂鸣器、按键、红外和 SPI Flash；
 左板 `B:n;` 参数保留协议兼容，但没有蓝灯输出。左板固件中的
-`R:n;`、`G:n;` 最终只按 0/非 0 控制 PA4/PA5 关/开，不提供亮度调节。
+`R:n;`、`G:n;` 在左板被忽略，四路 GPIO 由充电线程控制；ADC 采样失败时
+PA6/PA7 关闭。54V 只切换灯，不是充满截止；仍需电池包独立保护。
 
 ## 功能清单
 
@@ -89,7 +90,7 @@ PA11、PA12、PA15 及未列出的封装脚在当前固件中未分配；电源�
 | RT-Thread 启动 | 8 MHz HSE，经 PLL 至 72 MHz | 左板只建充电和主机线程；实板启动、uptime 递增 | 充电、BMS、UI、主机线程，构建通过 |
 | 主机协议 | USART3，ASCII `NAME:DATA;`；`CHRG_INFO`、`SYS_INFO` | 只读查询实测 | 构建通过，完整实板待测 |
 | 芯片 SN | `SN_GET:1;` 返回 96-bit UID；`CHRG_SN` 写入被拒绝 | UID 与探针读数一致 | 代码存在，实板待测 |
-| 固件版本 | `FW_VER:1;` 返回板型后缀 | 实板当前返回 `0.1.5-left`；包内 `0.1.6-left` 待烧录 | `0.1.2-right` 由构建定义，实板待测 |
+| 固件版本 | `FW_VER:1;` 返回板型后缀 | 实板当前返回 `0.1.5-left`；包内 `0.1.7-left` 待烧录 | `0.1.2-right` 由构建定义，实板待测 |
 | 模拟采样 | PA0/1/2；电流、电池电压、输入电压 | 查询值可返回，精度未校准 | 代码存在，精度未校准 |
 | PD 协商 | PB8/9 软件 I2C 操作 CH224、请求 PPS | 代码存在，带载待测 | 同左 |
 | 温度 | PB8/9 软件 I2C 读取 TMP100 | 代码存在，温度实测待做 | 同左 |
@@ -97,7 +98,7 @@ PA11、PA12、PA15 及未列出的封装脚在当前固件中未分配；电源�
 | 电池在位 | 左板无 PB4 信号；右板仍用 PB4 | `BAT_INST:0;` 是兼容占位值，不代表测得的电池状态 | PB4 输入代码存在，实板待测 |
 | BMS 通信 | 右板 PA9/10 USART1，Modbus 读 SoC/SoH | 左板不编译、不初始化 USART1；`BAT_SOC`/`BAT_SOH` 返回 `BMS_DISABLED;` | 代码存在，未验证 |
 | 风扇 | PA8 PWM；充电线程按温度调节 | 输出极性/转速待测 | 同左 |
-| 指示灯 GPIO | 左 PA4/5 控制 U34 红/绿两路，PA6/7 控制 `BAT_G`/`BAT_R` | 四路均为数字输出；`BAT_G` 保持关闭，`BAT_R` 表示异常；点亮极性待测 | 不适用 |
+| 指示灯 GPIO | 左 PA4 绿灯、PA5 红灯；PA6/7 按 PA1 ADC 引脚电压驱动 | 四路均为数字输出；1.39V 归 PA6，区间外双灯关闭；实板灯色和电平待测 | 不适用 |
 | RGB 灯 | 右 PA7 R、PB0 G、PA6 B | 不适用 | PWM 代码存在，亮度待测 |
 | OLED、按键、蜂鸣器 | 右 PB1/2、PA5、PA4 | 不编译 | 代码存在，实板待测 |
 | 红外检测 | 右 PB6/PB7 | 不编译；`IR_REC` 返回 0 | 代码存在，实板待测 |

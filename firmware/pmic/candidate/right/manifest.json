@@ -14,7 +14,7 @@
     "app": {
       "file": "ChargeBAT.bin",
       "load_address": "0x08001000",
-      "sha256": "c745658d926d547afdaa4c9d927ed2bf071326339906c74dce495ecb36a56f54"
+      "sha256": "797f4ebd208285eb6644e83552e2a9a5a5d7c9de04982d6254f0df8898fb8c42"
     }
   }
 }

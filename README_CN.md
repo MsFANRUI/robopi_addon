@@ -38,8 +38,8 @@
 
 本包包含左右板型各自的 bootloader、应用镜像和 SHA-256 清单，安装在
 `/opt/roboparty/share/pmic/candidate/{left,right}/`。这些是
-[`roboparty_pmic v0.1.6 Release`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.6)
-中的 `0.1.6-left` / `0.1.2-right` 工程候选版本，
+[`roboparty_pmic v0.1.7 Release`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7)
+中的 `0.1.7-left` / `0.1.2-right` 工程候选版本，
 **未完成量产放行**；安装本包不会自动烧录 PMIC。
 
 先确认 PMIC 的 USART3 串口设备（115200 8N1），再只读查询：
@@ -51,13 +51,16 @@ robopi-pmic-ota inspect --port /dev/ttyUSB0
 左板没有外置 SPI Flash，固件会对 `OTA_*` 返回 `OTA_ERR;`，只能使用
 CMSIS-DAP/SWD 烧录对应的 `left/boot.bin` 和 `left/ChargeBAT.bin`，
 地址分别为 `0x08000000` 和 `0x08001000`。不要把右板镜像烧到左板。
-`0.1.6-left` 不使用 PB4，也不编译 BMS 通信或初始化 USART1（PA9/PA10）。
+`0.1.7-left` 不使用 PB4，也不编译 BMS 通信或初始化 USART1（PA9/PA10）。
 左板在 ADC 连续采样有效、输入为 16–32V、CH224 能读到适配器电流且无故障时
 自动使能 PB3 `EN` 与 PA3 `ICTRL`；需要电池包自带独立充满截止保护。
 保存值和主机 `CHG_EN`/`ICTRL` 写入不能绕过自动条件。旧协议查询
 `BAT_INST` 返回 0，`BAT_SOC`/`BAT_SOH` 返回 `BMS_DISABLED;`。
 右板 BMS 行为不变。相同控制逻辑的 `0.1.5-left` 已验证 5V 输入时关闭、
-20V PD 输入时 PB3 拉高；这次测试未接电池包。包内 `0.1.6-left` 尚未烧录；
+20V PD 输入时 PB3 拉高；这次测试未接电池包。包内 `0.1.7-left` 尚未烧录。
+充电且输出电压低于 54V 时 PA4 绿灯亮，达到 54V 后 PA5 红灯亮；PA1 引脚电压
+1.39–1.50V 时 PA6 拉高，1.21–<1.39V 时 PA7 拉高。54V 只切换灯，不停止充电；
+主机 R/G 写入不能覆盖自动灯态。
 外部电压/电流和实际充电截止尚未测量。
 
 右板使用 `OTA_BEGIN:<size>,<crc32>;`、`OTA_DATA:<offset>,<hex>;`、
