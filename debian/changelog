@@ -1,3 +1,15 @@
+robopi-addon (1.8.13-1) stable; urgency=medium
+
+  * Package the left 0.1.6-left and right 0.1.2-right PMIC images from the
+    roboparty_pmic v0.1.6 release, with matching SHA-256 manifests.
+  * The left image automatically enables charging when sampled input and
+    adapter-current checks pass.
+  * Record the SWD readback and serial EN-state checks; retain engineering
+    candidate status pending external electrical and charge tests. The new
+    release image has not been flashed.
+
+ -- wentywenty <2321901849@qq.com>  Thu, 05 Nov 2026 00:00:00 +0800
+
 robopi-addon (1.8.12-1) stable; urgency=medium
 
   * Update the left PMIC candidate to 0.1.4-left without BMS/USART1 support.
