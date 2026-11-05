@@ -1,3 +1,12 @@
+robopi-addon (1.8.16-1) stable; urgency=medium
+
+  * Replace the STM32F103C8 application with the tested 0.1.8-left image
+    built from PMIC commit edb21da; correct the charge red/green GPIO mapping.
+  * Record SWD readback, 5 V and 20 V state checks, and four physical LED
+    channel observations. PA1 thresholds and loaded green state need testing.
+
+ -- wentywenty <2321901849@qq.com>  Thu, 05 Nov 2026 00:00:00 +0800
+
 robopi-addon (1.8.15-1) stable; urgency=medium
 
   * Install only the current STM32F103C8 PMIC candidate from v0.1.7 under

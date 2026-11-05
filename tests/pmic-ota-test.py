@@ -24,7 +24,7 @@ class PmicBundleTest(unittest.TestCase):
     def test_current_bundle(self):
         manifest, images = PMIC.load_bundle(SOURCE / "manifest.json")
         self.assertEqual(manifest["target"], "stm32f103c8")
-        self.assertEqual(manifest["version"], "0.1.7-left")
+        self.assertEqual(manifest["version"], "0.1.8-left")
         self.assertFalse(manifest["ota_supported"])
         self.assertGreater(len(images["app"]), len(images["boot"]))
 

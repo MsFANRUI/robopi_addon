@@ -42,8 +42,11 @@ The current pin mapping, feature inventory, and verification status are in the
 
 The package installs one STM32F103C8 bootloader and application candidate
 with a SHA-256 manifest at `/opt/roboparty/share/pmic/candidate/stm32f103c8/`.
-The images come from the current-hardware archive in the
+The bootloader matches the current-hardware archive in the
 [PMIC v0.1.7 release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7).
+The corrected `0.1.8-left` application is the hardware-tested build from
+[PMIC commit edb21da](https://github.com/Roboparty/roboparty_pmic/commit/edb21da),
+not a release download. Its hash is checked by the package manifest.
 The `-left` firmware version suffix is a historical build name, not a second MCU.
 These are not production-qualified firmware. Installing this
 package never flashes the PMIC.
@@ -52,7 +55,7 @@ Use `robopi-pmic-ota inspect --port /dev/ttyUSB0` for read-only UID and
 firmware-version queries on the PMIC USART3 port (115200 8N1). This hardware
 has no external SPI Flash and rejects serial OTA. Program its matching
 `boot.bin` at `0x08000000` and `ChargeBAT.bin` at `0x08001000` with SWD.
-In `0.1.7-left`, PB4 is unused and the BMS driver/thread and USART1 are not
+In `0.1.8-left`, PB4 is unused and the BMS driver/thread and USART1 are not
 built or initialized. The charge thread automatically enables PB3 EN and PA3
 ICTRL after three valid ADC samples when the input is 16-32 V, CH224 reports
 adapter current, and no fault is latched. Independent cutoff protection in
@@ -60,12 +63,14 @@ the battery pack is required. Saved settings and host `CHG_EN`/`ICTRL` writes
 cannot bypass the automatic conditions. Legacy `BAT_INST` returns 0 and
 `BAT_SOC`/`BAT_SOH` return `BMS_DISABLED;`.
 The same charge logic in `0.1.5-left` was tested: EN stayed off at 5 V and PB3
-went high at 20 V, with no battery pack attached. The packaged `0.1.7-left`
-image has not been flashed. PA4 is green while charging below 54 V output;
-PA5 is red while charging at or above 54 V. PA6 is high for PA1 at 1.39-1.50 V,
+went high at 20 V, with no battery pack attached. The packaged `0.1.8-left`
+image was flashed and verified on the test board. PA5 is green while charging
+below 54 V output; PA4 is red while charging at or above 54 V. PA6 is high for PA1 at 1.39-1.50 V,
 and PA7 for 1.21-<1.39 V; host R/G writes cannot override these outputs.
 The 54 V lamp threshold does not stop charging. External voltage/current and loaded charge
-termination have not been measured.
+termination have not been measured. SWD tests confirmed the physical colors
+of PA4-PA7; the 20 V open-circuit case lit only the charge red LED.
+PA1 voltage windows and the loaded green state remain untested on hardware.
 
 Validate the installed SWD image pair without opening a serial device:
 

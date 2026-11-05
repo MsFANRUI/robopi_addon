@@ -2,15 +2,15 @@
 
 更新日期：2026-11-05。当前实物只有一颗 STM32F103C8；GD32F503 是源码仓库中的
 另一 MCU 目标。安装包只提供当前 STM32F103C8 的一套固件，来源为
-[`roboparty_pmic v0.1.7`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.7)
-中的历史 `-left` 命名镜像。后缀不表示板上有第二颗 MCU。
+[`roboparty_pmic` 提交 edb21da](https://github.com/Roboparty/roboparty_pmic/commit/edb21da)
+的实板验证构建。bootloader 与 v0.1.7 Release 一致；`-left` 后缀不表示第二颗 MCU。
 
 ## 固件
 
 | 项目 | 当前硬件 |
 | --- | --- |
 | MCU | STM32F103C8T6，8 MHz HSE，72 MHz 系统时钟 |
-| 应用版本 | `0.1.7-left`，工程候选，尚未烧录实板 |
+| 应用版本 | `0.1.8-left`，工程候选，已烧录并回读验证 |
 | 固件位置 | `firmware/pmic/candidate/stm32f103c8/` |
 | Bootloader | `boot.bin`，烧录到 `0x08000000` |
 | 应用 | `ChargeBAT.bin`，烧录到 `0x08001000` |
@@ -33,8 +33,8 @@ PA4–PA7 为普通 GPIO 输出，没有 LED PWM。
 | PA1 | `U_BAT` 电池电压采样 | ADC1 IN1；PA6/PA7 按引脚原始电压判断 |
 | PA2 | `U_IN` 输入电压采样 | ADC1 IN2 |
 | PA3 | `ICTRL` 充电电流控制 | TIM2 CH4 PWM |
-| PA4 | 充电绿灯 | 充电使能且电池输出电压 <54V 时拉高 |
-| PA5 | 充电红灯 | 充电使能且电池输出电压 >=54V 时拉高 |
+| PA4 | 充电红灯 | 充电使能且电池输出电压 >=54V 时拉高 |
+| PA5 | 充电绿灯 | 充电使能且电池输出电压 <54V 时拉高 |
 | PA6 | `BAT_G` 指示灯 | PA1 引脚电压在 1.39–1.50V 时拉高 |
 | PA7 | `BAT_R` 指示灯 | PA1 引脚电压在 1.21–<1.39V 时拉高 |
 | PA8 | 风扇 | TIM1 CH1 PWM |
@@ -48,16 +48,16 @@ PA4–PA7 为普通 GPIO 输出，没有 LED PWM。
 | NRST/BOOT0 | 复位/启动选择 | 硬件接口 |
 
 PA11、PA12、PA15、PB0–PB2、PB5–PB7、PB12–PB15 等未在当前固件中分配。
-电源和地脚仍须依照原理图连接。灯色和实际高电平尚未用外部仪表核验。
+电源和地脚仍须依照原理图连接。灯色已逐脚目视确认，实际电压未用外部仪表核验。
 
 ## 功能与验证
 
 | 功能 | 当前行为 | 验证状态 |
 | --- | --- | --- |
-| 自动充电 | 有效 ADC 连续采样、输入 16–<32V、CH224 有电流能力且无故障时使能 PB3/PA3 | 相同控制逻辑的 `0.1.5-left` 在 5V 关闭、20V PD 打开；未接电池包 |
-| 充电灯 | PA4 绿灯到 54V；PA5 红灯从 54V 起；禁用充电时均关闭 | `0.1.7-left` 编译和边界单测通过，未实板验证 |
-| PA1 电压灯 | 1.39V 归 PA6；1.21–<1.39V 归 PA7；区间外或采样失败均关闭 | 编译和边界单测通过，未实板验证 |
-| 主机协议 | USART3，ASCII `NAME:DATA;`；`SN_GET`、`FW_VER`、`CHRG_INFO`、`SYS_INFO` | 旧版本只读 HIL 通过；新镜像未烧录 |
+| 自动充电 | 有效 ADC 连续采样、输入 16–<32V、CH224 有电流能力且无故障时使能 PB3/PA3 | `0.1.8-left` 在 5V 关闭、20V PD 打开；未接电池包 |
+| 充电灯 | PA5 绿灯到 54V；PA4 红灯从 54V 起；禁用充电时均关闭 | 四路 GPIO 逐脚实物灯色确认；20V 空载时只有充电红灯亮；低于 54V 的带载绿灯未测 |
+| PA1 电压灯 | 1.39V 归 PA6；1.21–<1.39V 归 PA7；区间外或采样失败均关闭 | PA6/PA7 实物灯色确认；电压阈值单测通过，未安全注入 PA1 实测 |
+| 主机协议 | USART3，ASCII `NAME:DATA;`；`SN_GET`、`FW_VER`、`CHRG_INFO`、`SYS_INFO` | 新镜像经 A100 只读 HIL 6/6 通过 |
 | BMS/电池在位 | 无外置 BMS/485 与 PB4 输入；兼容查询返回占位或 `BMS_DISABLED;` | 代码确认 |
 | 风扇/温度 | PA8 PWM；PB8/PB9 读取 TMP100 | 带载行为待测 |
 | 配置保存 | `SAVE:1;` 写内部 Flash 配置页 | 断电保持待测 |
