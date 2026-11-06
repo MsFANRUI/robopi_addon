@@ -1,21 +1,21 @@
 # PMIC 双目标 Pinout 与功能清单
 
-更新日期：2026-11-05。当前实物只有一颗 STM32F103C8；GD32F503VET6 是按软件先定义
+更新日期：2026-11-06。当前实物只有一颗 STM32F103C8；GD32F503VET6 是按软件先定义
 引脚的参考目标，尚无对应实板。安装包提供来自
-[`roboparty_pmic v0.1.10`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.10)
-的两套工程候选固件；`-left` 后缀不表示第二颗 MCU。
+[`roboparty_pmic v0.1.11`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.11)
+的两套工程候选固件；STM32 版本号已去掉历史 `-left` 后缀。
 
 ## STM32F103C8 固件
 
 | 项目 | 当前硬件 |
 | --- | --- |
 | MCU | STM32F103C8T6，8 MHz HSE，72 MHz 系统时钟 |
-| 应用版本 | `0.1.9-left`，工程候选，2026-11-06 已烧录、SWD 回读匹配、串口 HIL 6/6；`OTA_BEGIN` 返回 `OTA_ERR` 且应用未改写 |
+| 应用版本 | `0.1.10`，工程候选，2026-11-06 已经串口 OTA 烧录、SWD 回读匹配、串口 HIL 6/6 |
 | 固件位置 | `firmware/pmic/candidate/stm32f103c8/` |
 | Bootloader | `boot.bin`，烧录到 `0x08000000` |
 | 应用 | `ChargeBAT.bin`，烧录到 `0x08001000` |
 | 配置页 | `0x0800FC00` |
-| 更新方式 | CMSIS-DAP/SWD；无外置 SPI Flash，不支持串口 OTA |
+| 更新方式 | 首次通过 CMSIS-DAP/SWD 安装 bootloader；后续 USART3 串口 OTA，支持中断后重传，不支持自动回滚 |
 
 安装 addon 不会自动烧录 PMIC。可运行
 `robopi-pmic-ota verify-bundle --bundle /opt/roboparty/share/pmic/candidate/stm32f103c8/manifest.json`
@@ -61,14 +61,14 @@ PA11、PA12、PA15、PB0–PB2、PB5–PB7、PB12–PB15 等未在当前固件�
 | BMS/电池在位 | 无外置 BMS/485 与 PB4 输入；兼容查询返回占位或 `BMS_DISABLED;` | 代码确认 |
 | 风扇/温度 | PA8 PWM；PB8/PB9 读取 TMP100 | 带载行为待测 |
 | 配置保存 | `SAVE:1;` 写内部 Flash 配置页 | 断电保持待测 |
-| 串口 OTA | 不支持，`OTA_*` 返回 `OTA_ERR;` | 代码确认 |
+| 串口 OTA | `OTA_ENTER` 切换 bootloader；分块写入、CRC32 校验，首个应用页最后提交 | COM82 与 A100 隧道实测成功；中断恢复和 SWD 回读匹配 |
 
 54V 只切换灯，不是充满截止条件。电池包须有独立充电截止保护。
 带载电流、充满截止、ADC 精度、温升、实际灯色和输出电平仍需实板验证。
 
 源码位置：`boards/stm32f103_pmic/{pinout.h,board.c,drivers/adc.c,drivers/pwm.c}`、
 `common/app/src/{app_charge.c,app_config.c,app_host.c}` 和
-`boards/stm32f103_pmic/bootloader/boot_main.c`。
+`boards/stm32f103_pmic/bootloader/boot_left.c`。
 
 ## GD32F503VET6 参考固件
 

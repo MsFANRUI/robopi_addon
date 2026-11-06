@@ -16,7 +16,7 @@ from pathlib import Path
 STATUS_PATH = Path("/run/roboparty/pmic-status.json")
 REQUIRED = ("CHRG_SN", "FW_VER", "CHRG_V", "CHRG_I", "BAT_V", "CHG_EN")
 UID_RE = re.compile(r"[0-9A-F]{24}\Z")
-VERSION_RE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-[a-z0-9-]+\Z")
+VERSION_RE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9-]+)?\Z")
 NUMBER_RE = re.compile(r"[0-9]+(?:\.[0-9]+)?\Z")
 
 

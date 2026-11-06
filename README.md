@@ -41,8 +41,8 @@ The current pin mapping, feature inventory, and verification status are in the
 [PMIC pinout and function list](docs/pmic-pinout-functions.md) (Chinese).
 
 The package installs STM32F103C8 and GD32F503VET6 bootloader/application
-bundles from the corrected
-[PMIC v0.1.10 engineering release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.10),
+bundles from the
+[PMIC v0.1.11 engineering release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.11),
 each with a SHA-256 manifest under `/opt/roboparty/share/pmic/candidate/`.
 The earlier v0.1.8 GD32 asset had the wrong version string and is superseded.
 The `-left` firmware version suffix is a historical build name, not a second MCU.
@@ -50,9 +50,10 @@ These are not production-qualified firmware. Installing this
 package never flashes the PMIC.
 
 Use `robopi-pmic-ota inspect --port /dev/ttyUSB0` for read-only UID and
-firmware-version queries on the PMIC USART3 port (115200 8N1). This hardware
-has no external SPI Flash and rejects serial OTA. Program its matching
-`boot.bin` at `0x08000000` and `ChargeBAT.bin` at `0x08001000` with SWD.
+firmware-version queries on the PMIC USART3 port (115200 8N1). The STM32
+candidate uses internal Flash serial OTA with a resident bootloader. Its first
+installation requires SWD: `boot.bin` at `0x08000000`, `ChargeBAT.bin` at
+`0x08001000`.
 In `0.1.8-left`, PB4 is unused and the BMS driver/thread and USART1 are not
 built or initialized. The charge thread automatically enables PB3 EN and PA3
 ICTRL after three valid ADC samples when the input is 16-32 V, CH224 reports
@@ -79,8 +80,24 @@ robopi-pmic-ota verify-bundle \
   --bundle /opt/roboparty/share/pmic/candidate/gd32f503/manifest.json
 ```
 
-The current STM32F103C8 hardware has no serial OTA storage. Use SWD for firmware
-updates. Battery charging and output polarity remain unqualified.
+The packaged `0.1.10` STM32 application supports USART3 serial OTA. Serial
+transfer, application-initiated entry, and recovery after an interrupted
+transfer passed with byte-for-byte SWD readback. The suffix-free
+`FW_VER:0.1.10;` passed 6/6 read-only HIL after OTA. For subsequent manual
+updates, stop the PMIC monitor, ensure no battery is charging, and use the
+installed application image:
+
+```bash
+robopi-pmic-ota flash-stm32 --port /dev/ttyUSB0 \
+  --bin /opt/roboparty/share/pmic/candidate/stm32f103c8/ChargeBAT.bin \
+  --uid 0669FF555553787287104058
+```
+
+If transfer was interrupted and the board remains in its bootloader, repeat
+with `--recover` instead of `--uid`. The command refuses `/dev/ttyS7` while
+the BMS daemon forwards to it. The bootloader has no second image slot or
+automatic rollback; keep SWD available for service recovery. Battery charging
+and output polarity remain unqualified.
 
 The GD32F503VET6 reference target uses boot at `0x08000000`, application at
 `0x08008000`, and reports `FW_VER:0.1.1-gd32;` plus its 96-bit chip UID on
@@ -101,12 +118,11 @@ The BMS daemon currently forwards raw bytes one-way from `/dev/ttyS3` to
 If S7 is the PMIC's bidirectional host port, set `FORWARD_ENABLE=0` in
 `/etc/default/bms_daemon` and restart `bms.service` before enabling the monitor.
 Concurrent forwarding and PMIC queries need one serial owner and protocol
-arbitration; the current stack does not provide either. Current firmware does
-not expose its internal fault bit in `CHRG_INFO`, so `mcu_fault` is `null`
-(unknown) on the previously flashed `0.1.8-left` image. The packaged
-`0.1.9-left` and `0.1.1-gd32` candidates expose `CHG_FAULT:0/1;`. The STM32
-image was flashed, read back byte for byte, and passed 6/6 serial checks on
-2026-11-06. A valid-format `OTA_BEGIN:41740,0;` returned `OTA_ERR;`, and
+arbitration; the current stack does not provide either. The older `0.1.8-left`
+image omits `CHG_FAULT` from `CHRG_INFO`, so its `mcu_fault` is `null`.
+The packaged `0.1.10` and `0.1.1-gd32` candidates expose `CHG_FAULT:0/1;`.
+The previous STM32 image was flashed, read back byte for byte, and passed 6/6 serial checks on
+2026-11-06. On that earlier image, `OTA_BEGIN:41740,0;` returned `OTA_ERR;`, and
 SWD readback afterward showed no application change. GD32 remains untested
 on hardware. Transport errors are reported
 as `communication_fault`.

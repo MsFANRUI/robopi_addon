@@ -4,8 +4,8 @@
   "target": "gd32f503vet6",
   "version": "0.1.1-gd32",
   "release_status": "engineering-candidate",
-  "source_release": "v0.1.10",
-  "source_commit": "d9466b4e218a58cf7fb35597f2570ef29fbde289",
+  "source_release": "v0.1.11",
+  "source_commit": "874a80a9f6a1d0e8ef83e123c31aa46c75e0579c",
   "ota_supported": true,
   "charging_enabled": false,
   "images": {
@@ -17,7 +17,7 @@
     "app": {
       "file": "ChargeBAT_GD32.bin",
       "load_address": "0x08008000",
-      "sha256": "df01ea78e84c8165ee12e8dd804af1cc8ee8d9cddd7a74e4ae0e17be16a9a3b8"
+      "sha256": "7d095922c04c3bb6285dfdaba83f79af2766f31b5246ef90ecbb35bfac810d8b"
     }
   }
 }

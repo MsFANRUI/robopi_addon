@@ -2,21 +2,21 @@
   "schema": 2,
   "board": "stm32f103_pmic",
   "target": "stm32f103c8",
-  "version": "0.1.9-left",
+  "version": "0.1.10",
   "release_status": "engineering-candidate",
-  "source_release": "v0.1.10",
-  "source_commit": "d9466b4e218a58cf7fb35597f2570ef29fbde289",
-  "ota_supported": false,
+  "source_release": "v0.1.11",
+  "source_commit": "874a80a9f6a1d0e8ef83e123c31aa46c75e0579c",
+  "ota_supported": true,
   "images": {
     "boot": {
       "file": "boot.bin",
       "load_address": "0x08000000",
-      "sha256": "1087d24305d3364376d8bf3f3c455154f514bea1e17a718baa1cdc32d9e99ed5"
+      "sha256": "c9eb08ff36bdd98c684f68718f3b130bf7abed17404b9e24f901b5ca47640629"
     },
     "app": {
       "file": "ChargeBAT.bin",
       "load_address": "0x08001000",
-      "sha256": "733c7ed7fa551515f9055b57b19a4600ac53eadf7051d7b2a58b056f1af7325f"
+      "sha256": "97610bcb09917f8fa8fd6ad1dd2e3b759549ebeb3f3f27ed28a86b685bf989be"
     }
   }
 }

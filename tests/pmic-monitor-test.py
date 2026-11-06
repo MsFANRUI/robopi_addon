@@ -54,6 +54,12 @@ class MonitorTest(unittest.TestCase):
         self.assertEqual(no_pd["charge_state"], "no_pd_input")
         self.assertIsNone(no_pd["mcu_fault"])
 
+    def test_plain_semver_and_historical_suffix(self):
+        plain = MONITOR.parse_reply(REPLY.replace(b"0.1.8-left", b"0.1.10"))
+        self.assertEqual(plain["firmware_version"], "0.1.10")
+        historical = MONITOR.parse_reply(REPLY)
+        self.assertEqual(historical["firmware_version"], "0.1.8-left")
+
     def test_incomplete_and_invalid_reply_rejected(self):
         with self.assertRaisesRegex(ValueError, "incomplete"):
             MONITOR.parse_reply(REPLY.replace(b"CHRG_I:1.2A;", b""))

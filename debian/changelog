@@ -1,3 +1,12 @@
+robopi-addon (1.8.20-1) stable; urgency=medium
+
+  * Bundle PMIC v0.1.11 engineering candidates: STM32F103C8 FW_VER 0.1.10
+    with recoverable USART3 serial OTA, and the unverified GD32 reference.
+  * Add manually triggered STM32 OTA and accept unsuffixed firmware versions
+    in the read-only monitor; keep the monitor disabled by default.
+
+ -- wentywenty <2321901849@qq.com>  Fri, 06 Nov 2026 00:00:00 +0800
+
 robopi-addon (1.8.19-1) stable; urgency=medium
 
   * Record STM32F103C8 0.1.9-left SWD flash, byte-for-byte readback,
