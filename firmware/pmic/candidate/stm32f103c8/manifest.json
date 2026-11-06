@@ -2,10 +2,10 @@
   "schema": 2,
   "board": "stm32f103_pmic",
   "target": "stm32f103c8",
-  "version": "0.1.8-left",
+  "version": "0.1.9-left",
   "release_status": "engineering-candidate",
-  "source_release": "v0.1.9",
-  "source_commit": "c846bbc60554a187b44db40ff056a0f532c42840",
+  "source_release": "v0.1.10",
+  "source_commit": "d9466b4e218a58cf7fb35597f2570ef29fbde289",
   "ota_supported": false,
   "images": {
     "boot": {
@@ -16,7 +16,7 @@
     "app": {
       "file": "ChargeBAT.bin",
       "load_address": "0x08001000",
-      "sha256": "cf923e1d3a24d582316c55b4725fffdbdf074003604d982cc5fa8baaafbe36c7"
+      "sha256": "733c7ed7fa551515f9055b57b19a4600ac53eadf7051d7b2a58b056f1af7325f"
     }
   }
 }

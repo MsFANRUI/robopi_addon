@@ -1,0 +1,4 @@
+# PMIC host UART. Set this only after verifying the physical two-way link.
+# The current BMS daemon forwards raw bytes to /dev/ttyS7 by default; the
+# monitor refuses that port until FORWARD_ENABLE=0 in /etc/default/bms_daemon.
+PMIC_PORT=

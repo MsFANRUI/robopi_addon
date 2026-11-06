@@ -13,8 +13,8 @@ SPEC = importlib.util.spec_from_file_location("pmic_bundle", ROOT / "scripts/rob
 PMIC = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PMIC)
 BUNDLES = {
-    "stm32f103c8": ("0.1.8-left", "ChargeBAT.bin", False),
-    "gd32f503vet6": ("0.1.0-gd32", "ChargeBAT_GD32.bin", True),
+    "stm32f103c8": ("0.1.9-left", "ChargeBAT.bin", False),
+    "gd32f503vet6": ("0.1.1-gd32", "ChargeBAT_GD32.bin", True),
 }
 
 

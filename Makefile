@@ -63,6 +63,12 @@ install: all
 		$(DESTDIR)/opt/roboparty/bin/robopi-fan
 	install -D -m 0755 scripts/robopi-pmic-ota.py \
 		$(DESTDIR)/opt/roboparty/bin/robopi-pmic-ota
+	install -D -m 0755 scripts/robopi-pmic-monitor.py \
+		$(DESTDIR)/opt/roboparty/bin/robopi-pmic-monitor
+	install -D -m 0644 etc/systemd/system/robopi-pmic-monitor.service \
+		$(DESTDIR)/lib/systemd/system/robopi-pmic-monitor.service
+	install -D -m 0644 etc/default/robopi-pmic-monitor \
+		$(DESTDIR)/etc/default/robopi-pmic-monitor
 	install -D -m 0644 docs/pmic-pinout-functions.md \
 		$(DESTDIR)/usr/share/doc/robopi-addon/pmic-pinout-functions.md
 	for file in manifest.json boot.bin ChargeBAT.bin; do \
@@ -76,6 +82,7 @@ install: all
 	ln -sf /opt/roboparty/bin/robopi-ethernet-mac $(DESTDIR)/usr/bin/robopi-ethernet-mac
 	ln -sf /opt/roboparty/bin/robopi-fan $(DESTDIR)/usr/bin/robopi-fan
 	ln -sf /opt/roboparty/bin/robopi-pmic-ota $(DESTDIR)/usr/bin/robopi-pmic-ota
+	ln -sf /opt/roboparty/bin/robopi-pmic-monitor $(DESTDIR)/usr/bin/robopi-pmic-monitor
 
 	# SIG diagnostic service.
 	install -D -m 0644 etc/systemd/system/robopi-sig-key.service \

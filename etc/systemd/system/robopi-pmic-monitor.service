@@ -1,0 +1,13 @@
+[Unit]
+Description=RoboPi read-only PMIC status monitor
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/robopi-pmic-monitor
+ExecStart=/usr/bin/python3 /opt/roboparty/bin/robopi-pmic-monitor
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

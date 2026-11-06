@@ -2,7 +2,7 @@
 
 更新日期：2026-11-05。当前实物只有一颗 STM32F103C8；GD32F503VET6 是按软件先定义
 引脚的参考目标，尚无对应实板。安装包提供来自
-[`roboparty_pmic v0.1.9`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.9)
+[`roboparty_pmic v0.1.10`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.10)
 的两套工程候选固件；`-left` 后缀不表示第二颗 MCU。
 
 ## STM32F103C8 固件
@@ -10,7 +10,7 @@
 | 项目 | 当前硬件 |
 | --- | --- |
 | MCU | STM32F103C8T6，8 MHz HSE，72 MHz 系统时钟 |
-| 应用版本 | `0.1.8-left`，工程候选，已烧录并回读验证 |
+| 应用版本 | `0.1.9-left`，工程候选，已编译，尚未烧录；旧版 `0.1.8-left` 已烧录并回读验证 |
 | 固件位置 | `firmware/pmic/candidate/stm32f103c8/` |
 | Bootloader | `boot.bin`，烧录到 `0x08000000` |
 | 应用 | `ChargeBAT.bin`，烧录到 `0x08001000` |
@@ -75,7 +75,7 @@ PA11、PA12、PA15、PB0–PB2、PB5–PB7、PB12–PB15 等未在当前固件�
 | 项目 | 软件约定 |
 | --- | --- |
 | MCU | GD32F503VET6，512KB Flash、64KB SRAM，8MHz 外部晶振 |
-| 应用版本 | `0.1.0-gd32`，未做 GD32 实板验证 |
+| 应用版本 | `0.1.1-gd32`，未做 GD32 实板验证 |
 | 固件位置 | `firmware/pmic/candidate/gd32f503/` |
 | Bootloader / 应用 | `boot.bin` 位于 `0x08000000`；`ChargeBAT_GD32.bin` 位于 `0x08008000` |
 | 分区 | boot 32KB、app 224KB、staging 224KB、config 32KB |

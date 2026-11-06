@@ -37,7 +37,7 @@
 `/usr/share/doc/robopi-addon/pmic-pinout-functions.md`。
 
 本包从修正后的
-[`roboparty_pmic v0.1.9 工程预发布版`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.9)
+[`roboparty_pmic v0.1.10 工程预发布版`](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.10)
 收录 STM32F103C8 与 GD32F503VET6 两套 bootloader、应用镜像和 SHA-256 清单，
 分别安装在 `/opt/roboparty/share/pmic/candidate/stm32f103c8/` 和
 `/opt/roboparty/share/pmic/candidate/gd32f503/`。v0.1.8 的 GD32 镜像版本串有误，
@@ -59,7 +59,8 @@ CMSIS-DAP/SWD 烧录对应的 `stm32f103c8/boot.bin` 和 `stm32f103c8/ChargeBAT.
 保存值和主机 `CHG_EN`/`ICTRL` 写入不能绕过自动条件。旧协议查询
 `BAT_INST` 返回 0，`BAT_SOC`/`BAT_SOH` 返回 `BMS_DISABLED;`。
 相同控制逻辑的 `0.1.5-left` 已验证 5V 输入时关闭、
-20V PD 输入时 PB3 拉高；这次测试未接电池包。包内 `0.1.8-left` 已烧录回读。
+20V PD 输入时 PB3 拉高；这次测试未接电池包。旧版 `0.1.8-left` 已烧录回读；
+包内新版 `0.1.9-left` 尚未烧录。
 充电且输出电压低于 54V 时 PA5 绿灯亮，达到 54V 后 PA4 红灯亮；PA1 引脚电压
 1.39–1.50V 时 PA6 拉高，1.21–<1.39V 时 PA7 拉高。54V 只切换灯，不停止充电；
 主机 R/G 写入不能覆盖自动灯态。
@@ -80,12 +81,27 @@ robopi-pmic-ota verify-bundle \
 输出极性和多板测试尚未完成，不能标注为量产固件。
 
 GD32F503VET6 参考目标的 boot 地址为 `0x08000000`、应用地址为 `0x08008000`，
-USART0（PA9/PA10，115200 8N1）可查询 `FW_VER:0.1.0-gd32;` 和 96 位芯片 UID。
+USART0（PA9/PA10，115200 8N1）可查询 `FW_VER:0.1.1-gd32;` 和 96 位芯片 UID。
 固件包含内部 Flash OTA 路径，但 addon 的命令目前不执行 OTA；GD32 尚无匹配实板，
 包内镜像强制关闭充电 EN，也没有完成烧录和 OTA 实测。
 
-**没有 PMIC 专用 systemd 服务。** `robopi-pmic-ota inspect` 与 `verify-bundle`
-是按需运行的命令，安装包不会后台监控或自动刷机。
+`robopi-pmic-monitor.service` 是只读 PMIC 监控服务，默认禁用。确认 PMIC 的
+双向主机串口后，在 `/etc/default/robopi-pmic-monitor` 设置 `PMIC_PORT`，再执行
+`sudo systemctl enable --now robopi-pmic-monitor.service`。服务每 5 秒发送一次
+`CHRG_INFO:1;`，将输入电压、充电电流、使能状态和通信故障写入
+`/run/roboparty/pmic-status.json`；`journalctl -u robopi-pmic-monitor` 可查看采样日志。
+运行维护命令 `robopi-pmic-ota inspect` 前先停止服务，避免串口争用。
+
+现有 BMS 默认从 `/dev/ttyS3` 单向转发原始字节到 `/dev/ttyS7`。当前没有
+查询仲裁，监控服务会拒绝使用仍被 BMS 转发占用的 S7。若 PMIC 的双向主机串口
+实际是 S7，必须先在 `/etc/default/bms_daemon` 设置 `FORWARD_ENABLE=0` 并重启
+`bms.service`，确认不再占用 S7 后，才能启用监控。需要同时保留转发与 PMIC
+交互时，应先增加单一串口所有者及协议仲裁，不能让两个进程并发写 S7。
+旧版已烧录的 `0.1.8-left` 的 `CHRG_INFO` 不含内部故障位，因此 JSON 的
+`mcu_fault` 为 `null`（未知）；包内 `0.1.9-left` 和 `0.1.1-gd32` 镜像会回
+`CHG_FAULT:0/1;`，但尚未烧录。串口读写错误会明确置 `connected=false`
+和 `communication_fault`。
+`robopi-pmic-ota` 仍是人工触发命令，安装服务不会自动刷机。
 
 ## 默认服务行为
 
@@ -101,7 +117,7 @@ USART0（PA9/PA10，115200 8N1）可查询 `FW_VER:0.1.0-gd32;` 和 96 位芯片
 | `robopi-ethernet-mac.service` | 禁用 | 仅在确认网卡名和网络影响后手动启用 |
 | `robopi-hw-test.service` | 禁用 | 产测/诊断工具，与 BMS GPIO 服务互斥 |
 | `robopi-sig-key.service` | 禁用 | SIG/按键诊断工具，与 BMS GPIO 服务互斥 |
-| PMIC 服务 | 未安装 | PMIC 查询与固件包校验需手动执行 |
+| `robopi-pmic-monitor.service` | 禁用 | 配好独立双向串口后只读监控 PMIC；不执行刷机 |
 
 `usbcan-capture.service` 和 `hpm-log-capture.service` 属于 `roboparty-analyze`，
 本包不管理它们的启停状态。

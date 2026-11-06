@@ -2,10 +2,10 @@
   "schema": 2,
   "board": "gd32f503_pmic",
   "target": "gd32f503vet6",
-  "version": "0.1.0-gd32",
+  "version": "0.1.1-gd32",
   "release_status": "engineering-candidate",
-  "source_release": "v0.1.9",
-  "source_commit": "c846bbc60554a187b44db40ff056a0f532c42840",
+  "source_release": "v0.1.10",
+  "source_commit": "d9466b4e218a58cf7fb35597f2570ef29fbde289",
   "ota_supported": true,
   "charging_enabled": false,
   "images": {
@@ -17,7 +17,7 @@
     "app": {
       "file": "ChargeBAT_GD32.bin",
       "load_address": "0x08008000",
-      "sha256": "a5f4618ea0652814f0305645d31d0d79abfd01bfcb636dc32538772235960346"
+      "sha256": "df01ea78e84c8165ee12e8dd804af1cc8ee8d9cddd7a74e4ae0e17be16a9a3b8"
     }
   }
 }

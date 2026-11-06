@@ -1,3 +1,14 @@
+robopi-addon (1.8.18-1) stable; urgency=medium
+
+  * Add an opt-in, read-only PMIC host monitor with atomic JSON status and
+    journal telemetry for input voltage, charging state, and communication
+    faults. Refuse the UART used by the existing BMS forwarding path.
+  * Bundle PMIC v0.1.10 STM32F103C8 and GD32F503VET6 candidates with the
+    read-only CHG_FAULT field. Keep flashing as an operator action; the
+    previously flashed STM32 image does not yet expose this field.
+
+ -- wentywenty <2321901849@qq.com>  Fri, 06 Nov 2026 00:00:00 +0800
+
 robopi-addon (1.8.17-1) stable; urgency=medium
 
   * Bundle exactly two PMIC engineering candidates from the corrected

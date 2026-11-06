@@ -42,7 +42,7 @@ The current pin mapping, feature inventory, and verification status are in the
 
 The package installs STM32F103C8 and GD32F503VET6 bootloader/application
 bundles from the corrected
-[PMIC v0.1.9 engineering release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.9),
+[PMIC v0.1.10 engineering release](https://github.com/Roboparty/roboparty_pmic/releases/tag/v0.1.10),
 each with a SHA-256 manifest under `/opt/roboparty/share/pmic/candidate/`.
 The earlier v0.1.8 GD32 asset had the wrong version string and is superseded.
 The `-left` firmware version suffix is a historical build name, not a second MCU.
@@ -61,7 +61,7 @@ the battery pack is required. Saved settings and host `CHG_EN`/`ICTRL` writes
 cannot bypass the automatic conditions. Legacy `BAT_INST` returns 0 and
 `BAT_SOC`/`BAT_SOH` return `BMS_DISABLED;`.
 The same charge logic in `0.1.5-left` was tested: EN stayed off at 5 V and PB3
-went high at 20 V, with no battery pack attached. The packaged `0.1.8-left`
+went high at 20 V, with no battery pack attached. The previous `0.1.8-left`
 image was flashed and verified on the test board. PA5 is green while charging
 below 54 V output; PA4 is red while charging at or above 54 V. PA6 is high for PA1 at 1.39-1.50 V,
 and PA7 for 1.21-<1.39 V; host R/G writes cannot override these outputs.
@@ -83,14 +83,31 @@ The current STM32F103C8 hardware has no serial OTA storage. Use SWD for firmware
 updates. Battery charging and output polarity remain unqualified.
 
 The GD32F503VET6 reference target uses boot at `0x08000000`, application at
-`0x08008000`, and reports `FW_VER:0.1.0-gd32;` plus its 96-bit chip UID on
+`0x08008000`, and reports `FW_VER:0.1.1-gd32;` plus its 96-bit chip UID on
 USART0 (PA9/PA10, 115200 8N1). Its firmware has an internal-Flash OTA path,
 but this addon tool does not perform OTA. There is no verified matching GD32
 board: the packaged image forces charging EN off, and GD32 flashing and OTA
 have not been tested on hardware.
 
-There is no PMIC systemd service. `robopi-pmic-ota inspect` and `verify-bundle`
-are operator commands, not background monitoring or automatic updates.
+`robopi-pmic-monitor.service` is installed but disabled by default. Set the
+verified bidirectional host UART as `PMIC_PORT` in `/etc/default/robopi-pmic-monitor`,
+then run `sudo systemctl enable --now robopi-pmic-monitor.service`. It polls
+`CHRG_INFO:1;` every five seconds and publishes voltage, current, charge state,
+and communication errors to `/run/roboparty/pmic-status.json` and the journal.
+Stop the service before using `robopi-pmic-ota inspect` on the same serial port.
+
+The BMS daemon currently forwards raw bytes one-way from `/dev/ttyS3` to
+`/dev/ttyS7`. The monitor refuses S7 while that forwarding is configured.
+If S7 is the PMIC's bidirectional host port, set `FORWARD_ENABLE=0` in
+`/etc/default/bms_daemon` and restart `bms.service` before enabling the monitor.
+Concurrent forwarding and PMIC queries need one serial owner and protocol
+arbitration; the current stack does not provide either. Current firmware does
+not expose its internal fault bit in `CHRG_INFO`, so `mcu_fault` is `null`
+(unknown) on the previously flashed `0.1.8-left` image. The packaged
+`0.1.9-left` and `0.1.1-gd32` candidates expose `CHG_FAULT:0/1;`; they have
+not been flashed. Transport errors are reported as `communication_fault`.
+`robopi-pmic-ota` remains an operator command. Neither package installation nor
+the monitor flashes PMIC firmware.
 
 ## Default service policy
 
@@ -106,7 +123,7 @@ The package maintainer scripts apply the following default policy:
 | `robopi-ethernet-mac.service` | Disabled | Enable manually only after checking the interface name and network impact |
 | `robopi-hw-test.service` | Disabled | Manufacturing/diagnostic tool; conflicts with the BMS GPIO service |
 | `robopi-sig-key.service` | Disabled | SIG/key diagnostic tool; conflicts with the BMS GPIO service |
-| PMIC service | Not installed | PMIC inspection and bundle validation are manual commands |
+| `robopi-pmic-monitor.service` | Disabled | Read-only PMIC monitoring after a bidirectional UART is configured; never flashes |
 
 `usbcan-capture.service` and `hpm-log-capture.service` belong to
 `roboparty-analyze`; this package does not manage their state.
