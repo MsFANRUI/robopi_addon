@@ -10,7 +10,7 @@
 | 项目 | 当前硬件 |
 | --- | --- |
 | MCU | STM32F103C8T6，8 MHz HSE，72 MHz 系统时钟 |
-| 应用版本 | `0.1.9-left`，工程候选，已编译，尚未烧录；旧版 `0.1.8-left` 已烧录并回读验证 |
+| 应用版本 | `0.1.9-left`，工程候选，2026-11-06 已烧录、SWD 回读匹配、串口 HIL 6/6；`OTA_BEGIN` 返回 `OTA_ERR` 且应用未改写 |
 | 固件位置 | `firmware/pmic/candidate/stm32f103c8/` |
 | Bootloader | `boot.bin`，烧录到 `0x08000000` |
 | 应用 | `ChargeBAT.bin`，烧录到 `0x08001000` |

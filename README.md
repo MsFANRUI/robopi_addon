@@ -104,8 +104,12 @@ Concurrent forwarding and PMIC queries need one serial owner and protocol
 arbitration; the current stack does not provide either. Current firmware does
 not expose its internal fault bit in `CHRG_INFO`, so `mcu_fault` is `null`
 (unknown) on the previously flashed `0.1.8-left` image. The packaged
-`0.1.9-left` and `0.1.1-gd32` candidates expose `CHG_FAULT:0/1;`; they have
-not been flashed. Transport errors are reported as `communication_fault`.
+`0.1.9-left` and `0.1.1-gd32` candidates expose `CHG_FAULT:0/1;`. The STM32
+image was flashed, read back byte for byte, and passed 6/6 serial checks on
+2026-11-06. A valid-format `OTA_BEGIN:41740,0;` returned `OTA_ERR;`, and
+SWD readback afterward showed no application change. GD32 remains untested
+on hardware. Transport errors are reported
+as `communication_fault`.
 `robopi-pmic-ota` remains an operator command. Neither package installation nor
 the monitor flashes PMIC firmware.
 

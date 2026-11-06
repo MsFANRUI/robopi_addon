@@ -1,3 +1,12 @@
+robopi-addon (1.8.19-1) stable; urgency=medium
+
+  * Record STM32F103C8 0.1.9-left SWD flash, byte-for-byte readback,
+    6/6 serial HIL checks, and OTA_BEGIN rejection with unchanged flash.
+  * Retain the v0.1.10 PMIC firmware binaries and keep the PMIC monitor
+    disabled until its host UART is verified independently of BMS forwarding.
+
+ -- wentywenty <2321901849@qq.com>  Fri, 06 Nov 2026 00:00:00 +0800
+
 robopi-addon (1.8.18-1) stable; urgency=medium
 
   * Add an opt-in, read-only PMIC host monitor with atomic JSON status and

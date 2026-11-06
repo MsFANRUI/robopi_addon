@@ -60,7 +60,10 @@ CMSIS-DAP/SWD 烧录对应的 `stm32f103c8/boot.bin` 和 `stm32f103c8/ChargeBAT.
 `BAT_INST` 返回 0，`BAT_SOC`/`BAT_SOH` 返回 `BMS_DISABLED;`。
 相同控制逻辑的 `0.1.5-left` 已验证 5V 输入时关闭、
 20V PD 输入时 PB3 拉高；这次测试未接电池包。旧版 `0.1.8-left` 已烧录回读；
-包内新版 `0.1.9-left` 尚未烧录。
+包内新版 `0.1.9-left` 已于 2026-11-06 烧录到 STM32F103C8，并通过 SWD
+逐字节回读和 6/6 串口只读 HIL；5V 下 `CHG_EN:0`、`CHG_FAULT:0`。
+有效格式的 `OTA_BEGIN:41740,0;` 返回 `OTA_ERR;`，随后 SWD 再次回读应用
+仍与 Release 镜像一致；当前 STM32 无串口 OTA 能力。
 充电且输出电压低于 54V 时 PA5 绿灯亮，达到 54V 后 PA4 红灯亮；PA1 引脚电压
 1.39–1.50V 时 PA6 拉高，1.21–<1.39V 时 PA7 拉高。54V 只切换灯，不停止充电；
 主机 R/G 写入不能覆盖自动灯态。
@@ -99,7 +102,7 @@ USART0（PA9/PA10，115200 8N1）可查询 `FW_VER:0.1.1-gd32;` 和 96 位芯片
 交互时，应先增加单一串口所有者及协议仲裁，不能让两个进程并发写 S7。
 旧版已烧录的 `0.1.8-left` 的 `CHRG_INFO` 不含内部故障位，因此 JSON 的
 `mcu_fault` 为 `null`（未知）；包内 `0.1.9-left` 和 `0.1.1-gd32` 镜像会回
-`CHG_FAULT:0/1;`，但尚未烧录。串口读写错误会明确置 `connected=false`
+`CHG_FAULT:0/1;`；STM32 新版已烧录，GD32 仍未实板验证。串口读写错误会明确置 `connected=false`
 和 `communication_fault`。
 `robopi-pmic-ota` 仍是人工触发命令，安装服务不会自动刷机。
 
